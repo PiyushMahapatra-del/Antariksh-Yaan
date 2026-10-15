@@ -1,0 +1,136 @@
+{
+  "version": "1.0.0-synthetic",
+  "disclaimer": "SYNTHETIC: NOT REAL MEDICAL PROCEDURES. NOT MEDICAL ADVICE.",
+  "trees": {
+    "hypoxia": {
+      "id": "hyp_root",
+      "question": "Is ppO2 < 19.5 kPa?",
+      "variable": "ppO2",
+      "threshold": 19.5,
+      "yesChild": {
+        "id": "hyp_severe",
+        "question": "Is ppO2 < 16.0 kPa?",
+        "variable": "ppO2",
+        "threshold": 16,
+        "yesChild": {
+          "id": "hyp_critical",
+          "question": "Is SpO2 < 90%?",
+          "variable": "spO2",
+          "threshold": 90,
+          "yesChild": {
+            "id": "hyp_emergency",
+            "diagnosis": "CRITICAL HYPOXIA",
+            "actions": [
+              "SYNTHETIC: Immediately restore O2 supply",
+              "SYNTHETIC: Move crew to safe volume with O2",
+              "SYNTHETIC: Apply supplemental O2 mask",
+              "SYNTHETIC: Monitor SpO2 continuously",
+              "SYNTHETIC: Queue flight surgeon review packet"
+            ]
+          },
+          "noChild": {
+            "id": "hyp_moderate",
+            "diagnosis": "MODERATE HYPOXIA",
+            "actions": [
+              "SYNTHETIC: Increase O2 flow rate",
+              "SYNTHETIC: Monitor ppO2 and SpO2",
+              "SYNTHETIC: Check O2 regulator status"
+            ]
+          }
+        },
+        "noChild": {
+          "id": "hyp_mild",
+          "diagnosis": "MILD HYPOXIA WARNING",
+          "actions": [
+            "SYNTHETIC: Check O2 regulator",
+            "SYNTHETIC: Verify cabin seal integrity",
+            "SYNTHETIC: Monitor ppO2 trend"
+          ]
+        }
+      },
+      "noChild": {
+        "id": "hyp_nominal",
+        "diagnosis": "ppO2 NOMINAL",
+        "actions": [
+          "Continue monitoring"
+        ]
+      }
+    },
+    "co2": {
+      "id": "co2_root",
+      "question": "Is ppCO2 > 1.0 kPa?",
+      "variable": "ppCO2",
+      "threshold": 1,
+      "yesChild": {
+        "id": "co2_elevated",
+        "question": "Is ppCO2 > 2.0 kPa?",
+        "variable": "ppCO2",
+        "threshold": 2,
+        "yesChild": {
+          "id": "co2_danger",
+          "diagnosis": "DANGEROUS CO2 LEVEL",
+          "actions": [
+            "SYNTHETIC: Replace CO2 scrubber cartridge immediately",
+            "SYNTHETIC: Increase cabin ventilation",
+            "SYNTHETIC: Monitor crew for headache, dizziness",
+            "SYNTHETIC: Consider supplemental O2"
+          ]
+        },
+        "noChild": {
+          "id": "co2_caution",
+          "diagnosis": "ELEVATED CO2",
+          "actions": [
+            "SYNTHETIC: Check CO2 scrubber efficiency",
+            "SYNTHETIC: Plan scrubber cartridge replacement",
+            "SYNTHETIC: Monitor ppCO2 trend"
+          ]
+        }
+      },
+      "noChild": {
+        "id": "co2_nominal",
+        "diagnosis": "ppCO2 NOMINAL",
+        "actions": [
+          "Continue monitoring"
+        ]
+      }
+    },
+    "decompression": {
+      "id": "decomp_root",
+      "question": "Is cabin pressure < 95 kPa?",
+      "variable": "cabinPressure",
+      "threshold": 95,
+      "yesChild": {
+        "id": "decomp_loss",
+        "question": "Is pressure rate of change < -0.5 kPa/min?",
+        "variable": "pressureRate",
+        "threshold": -0.5,
+        "yesChild": {
+          "id": "decomp_rapid",
+          "diagnosis": "RAPID DECOMPRESSION",
+          "actions": [
+            "SYNTHETIC: Don emergency pressure suits",
+            "SYNTHETIC: Seal affected compartment",
+            "SYNTHETIC: Initiate emergency repressurization",
+            "SYNTHETIC: All crew report to safe haven"
+          ]
+        },
+        "noChild": {
+          "id": "decomp_slow",
+          "diagnosis": "SLOW PRESSURE LEAK",
+          "actions": [
+            "SYNTHETIC: Locate leak with pressure differential",
+            "SYNTHETIC: Apply emergency patch",
+            "SYNTHETIC: Monitor cabin pressure recovery"
+          ]
+        }
+      },
+      "noChild": {
+        "id": "decomp_nominal",
+        "diagnosis": "CABIN PRESSURE NOMINAL",
+        "actions": [
+          "Continue monitoring"
+        ]
+      }
+    }
+  }
+}

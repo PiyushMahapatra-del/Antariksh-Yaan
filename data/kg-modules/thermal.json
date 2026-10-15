@@ -1,0 +1,74 @@
+{
+  "domain": "thermal",
+  "version": "1.0.0-synthetic",
+  "nodeCount": 9,
+  "nodes": [
+    {
+      "id": "proc_loop_failover",
+      "type": "Procedure",
+      "name": "Cooling Loop Failover",
+      "text": "Switch from failed coolant loop A to redundant loop B. Verify flow rate and outlet temperature stabilize within 5 minutes. Monitor accumulator level.",
+      "phase": [
+        "Cruise",
+        "MOI",
+        "MarsOrbit",
+        "ReturnCruise"
+      ]
+    },
+    {
+      "id": "proc_o2_regulator",
+      "type": "Procedure",
+      "name": "O2 Regulator Fault Response",
+      "text": "If O2 regulator is stuck, manually adjust supplemental O2 flow. Monitor ppO2 continuously. Target 21.3 kPa. Alert if ppO2 drops below 19.5 kPa.",
+      "phase": [
+        "Cruise",
+        "MOI",
+        "MarsOrbit",
+        "SurfaceOps",
+        "ReturnCruise"
+      ]
+    },
+    {
+      "id": "eq_loop_a",
+      "type": "Equipment",
+      "name": "Coolant Loop A",
+      "text": "Primary thermal control loop with pump, radiator, and accumulator"
+    },
+    {
+      "id": "eq_loop_b",
+      "type": "Equipment",
+      "name": "Coolant Loop B",
+      "text": "Redundant thermal control loop (backup)"
+    },
+    {
+      "id": "sens_temp_outlet_a",
+      "type": "Sensor",
+      "name": "Loop A Outlet Temperature Sensor",
+      "text": "Telemetry sensor: Loop A Outlet Temperature Sensor"
+    },
+    {
+      "id": "sens_temp_outlet_b",
+      "type": "Sensor",
+      "name": "Loop B Outlet Temperature Sensor",
+      "text": "Telemetry sensor: Loop B Outlet Temperature Sensor"
+    },
+    {
+      "id": "sens_flow_a",
+      "type": "Sensor",
+      "name": "Loop A Flow Rate Sensor",
+      "text": "Telemetry sensor: Loop A Flow Rate Sensor"
+    },
+    {
+      "id": "sens_pump_rpm_a",
+      "type": "Sensor",
+      "name": "Loop A Pump RPM Sensor",
+      "text": "Telemetry sensor: Loop A Pump RPM Sensor"
+    },
+    {
+      "id": "haz_thermal_runaway",
+      "type": "Hazard",
+      "name": "Thermal Runaway",
+      "text": "Uncontrolled temperature rise due to coolant system failure"
+    }
+  ]
+}

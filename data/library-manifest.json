@@ -1,0 +1,34 @@
+{
+  "buildTimestamp": "2026-10-15T14:53:37.442Z",
+  "syntheticWarning": "SYNTHETIC: NOT REAL FLIGHT OR MEDICAL PROCEDURES",
+  "artifacts": {
+    "med-trees.json": {
+      "sha256": "0176f806dc863e5f977783ba398795e51fc52273100008b134f762a0cc38a83e",
+      "size": 4103
+    },
+    "formulary.json": {
+      "sha256": "a0d88294601fcac009528ff5870d11d69a0d9c9ce87fb0810a97c512fb123ffc",
+      "size": 3201
+    },
+    "kg-modules/thermal.json": {
+      "sha256": "da449bdbb955e86625c7d592cd84049a03833725d000cfe5357ecaee6b018bcd",
+      "size": 2094
+    },
+    "kg-modules/eclss.json": {
+      "sha256": "697fb63df277ca9d14608be6ecc460b0a26c314d13a9abecefcba36769019a25",
+      "size": 3511
+    },
+    "kg-modules/power.json": {
+      "sha256": "30a1710ff363f1c3a423a6a44cf147b4f3f82ff80d2ba58affa871338639dfe8",
+      "size": 1302
+    },
+    "kg-modules/gnc.json": {
+      "sha256": "20045adddc71786215b5033873daa76f2baa1d7ca921c44a4d056b1b5b0de41b",
+      "size": 1377
+    },
+    "kg-modules/medical.json": {
+      "sha256": "e015ff19559ebb30a2bf89ad3d86317a78eb9f54c2f4762d63bfcd3764952da2",
+      "size": 2100
+    }
+  }
+}

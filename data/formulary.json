@@ -1,0 +1,158 @@
+{
+  "version": "1.0.0-synthetic",
+  "disclaimer": "SYNTHETIC: NOT REAL MEDICAL PROCEDURES. NOT MEDICAL ADVICE.",
+  "formulary": [
+    {
+      "name": "Supplemental O2",
+      "indication": "Hypoxia",
+      "dose": "2-4 L/min",
+      "route": "Inhalation",
+      "notes": "SYNTHETIC: First-line for low SpO2",
+      "inKit": true
+    },
+    {
+      "name": "Acetazolamide (illustrative)",
+      "indication": "Altitude sickness analog",
+      "dose": "250mg",
+      "route": "Oral",
+      "notes": "SYNTHETIC: Illustrative only",
+      "inKit": true
+    },
+    {
+      "name": "Ondansetron (illustrative)",
+      "indication": "Nausea/vomiting",
+      "dose": "4mg",
+      "route": "Oral",
+      "notes": "SYNTHETIC: Illustrative only",
+      "inKit": true
+    },
+    {
+      "name": "Potassium iodide (illustrative)",
+      "indication": "Radiation exposure",
+      "dose": "130mg",
+      "route": "Oral",
+      "notes": "SYNTHETIC: Illustrative thyroid protection",
+      "inKit": true
+    }
+  ],
+  "conditionalProbabilityTable": [
+    {
+      "condition": "Hypoxia",
+      "features": {
+        "ppO2": {
+          "mean": 15,
+          "std": 3
+        },
+        "spO2": {
+          "mean": 88,
+          "std": 5
+        },
+        "heartRate": {
+          "mean": 100,
+          "std": 15
+        },
+        "respRate": {
+          "mean": 22,
+          "std": 4
+        }
+      },
+      "priorProbability": 0.15
+    },
+    {
+      "condition": "CO2 Toxicity",
+      "features": {
+        "ppCO2": {
+          "mean": 2.5,
+          "std": 0.8
+        },
+        "spO2": {
+          "mean": 94,
+          "std": 3
+        },
+        "heartRate": {
+          "mean": 90,
+          "std": 12
+        },
+        "respRate": {
+          "mean": 24,
+          "std": 5
+        }
+      },
+      "priorProbability": 0.1
+    },
+    {
+      "condition": "Decompression Exposure",
+      "features": {
+        "cabinPressure": {
+          "mean": 70,
+          "std": 15
+        },
+        "spO2": {
+          "mean": 85,
+          "std": 8
+        },
+        "heartRate": {
+          "mean": 110,
+          "std": 20
+        },
+        "ppO2": {
+          "mean": 10,
+          "std": 5
+        },
+        "respRate": {
+          "mean": 28,
+          "std": 6
+        }
+      },
+      "priorProbability": 0.05
+    },
+    {
+      "condition": "Radiation Sickness",
+      "features": {
+        "radiationDose": {
+          "mean": 500,
+          "std": 200
+        },
+        "heartRate": {
+          "mean": 80,
+          "std": 15
+        },
+        "ppO2": {
+          "mean": 21.3,
+          "std": 1.5
+        },
+        "spO2": {
+          "mean": 97,
+          "std": 2
+        }
+      },
+      "priorProbability": 0.03
+    },
+    {
+      "condition": "Nominal",
+      "features": {
+        "ppO2": {
+          "mean": 21.3,
+          "std": 1
+        },
+        "ppCO2": {
+          "mean": 0.4,
+          "std": 0.2
+        },
+        "spO2": {
+          "mean": 98,
+          "std": 1
+        },
+        "heartRate": {
+          "mean": 70,
+          "std": 10
+        },
+        "respRate": {
+          "mean": 16,
+          "std": 3
+        }
+      },
+      "priorProbability": 0.67
+    }
+  ]
+}

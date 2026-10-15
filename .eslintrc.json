@@ -1,0 +1,50 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["@typescript-eslint", "import"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "import/no-restricted-paths": [
+      "error",
+      {
+        "zones": [
+          {
+            "target": "./src/fsw/**",
+            "from": "./src/ai/**",
+            "message": "SAFETY: Tier 0 flight software (src/fsw) must NEVER import from AI module (src/ai). AI can only propose through the safety gate."
+          },
+          {
+            "target": "./src/sim/**",
+            "from": "./src/ai/**",
+            "message": "SAFETY: Simulation core (src/sim) must not import from AI module (src/ai)."
+          }
+        ]
+      }
+    ],
+    "no-restricted-globals": [
+      "error",
+      {
+        "name": "fetch",
+        "message": "No network calls at runtime (G3). Use local data only."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["scripts/**/*.ts", "*.config.ts"],
+      "rules": {
+        "no-restricted-globals": "off"
+      }
+    }
+  ]
+}

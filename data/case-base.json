@@ -1,0 +1,97 @@
+[
+  {
+    "id": "CASE-EXP-019",
+    "faultClass": "nominal",
+    "outcome": "Nominal transit telemetry, all loops within thermal margins.",
+    "timestamp": 2460800.5,
+    "synthetic": true,
+    "features": {
+      "flow_rate": 0.46,
+      "pump_dp": 48.5,
+      "pump_rpm": 3020,
+      "outlet_temp": 293.2,
+      "inlet_temp": 285.1,
+      "accumulator_level": 0.85,
+      "energy_residual": 2.1,
+      "temp_slope": 0.001,
+      "flow_slope": 0,
+      "pressure_slope": 0.01
+    }
+  },
+  {
+    "id": "CASE-EXP-088",
+    "faultClass": "pump_failure",
+    "outcome": "Primary coolant loop A pump cavitated during TCM-2. Executed failover to Loop B. Normal ops restored.",
+    "timestamp": 2460822.1,
+    "synthetic": true,
+    "features": {
+      "flow_rate": 0.07,
+      "pump_dp": 11.2,
+      "pump_rpm": 580,
+      "outlet_temp": 318.4,
+      "inlet_temp": 286,
+      "accumulator_level": 0.84,
+      "energy_residual": 155,
+      "temp_slope": 0.28,
+      "flow_slope": -0.04,
+      "pressure_slope": -0.15
+    }
+  },
+  {
+    "id": "CASE-EXP-112",
+    "faultClass": "leak",
+    "outcome": "Micrometeoroid breach on radiator feeder line. Accumulator depleted to 25%. Isolated manifold and patched.",
+    "timestamp": 2460865.7,
+    "synthetic": true,
+    "features": {
+      "flow_rate": 0.31,
+      "pump_dp": 30.5,
+      "pump_rpm": 3100,
+      "outlet_temp": 302.1,
+      "inlet_temp": 287.5,
+      "accumulator_level": 0.24,
+      "energy_residual": 45,
+      "temp_slope": 0.08,
+      "flow_slope": -0.01,
+      "pressure_slope": -0.38
+    }
+  },
+  {
+    "id": "CASE-EXP-145",
+    "faultClass": "blockage",
+    "outcome": "Paraffin wax thermal valve jammed shut. High delta-P detected. Switched to bypass loop and cleared clog.",
+    "timestamp": 2460890.3,
+    "synthetic": true,
+    "features": {
+      "flow_rate": 0.04,
+      "pump_dp": 82,
+      "pump_rpm": 3450,
+      "outlet_temp": 326.5,
+      "inlet_temp": 284,
+      "accumulator_level": 0.86,
+      "energy_residual": 180,
+      "temp_slope": 0.41,
+      "flow_slope": -0.08,
+      "pressure_slope": 0.52
+    }
+  },
+  {
+    "id": "CASE-EXP-198",
+    "faultClass": "sensor_fault",
+    "outcome": "RTD thermocouple sensor shorted out. Value pinned to 373.15K. Diagnostic flagged sensor stuck-at fault.",
+    "timestamp": 2460920,
+    "synthetic": true,
+    "features": {
+      "flow_rate": 0.45,
+      "pump_dp": 47.9,
+      "pump_rpm": 3010,
+      "outlet_temp": 373.15,
+      "inlet_temp": 285.2,
+      "accumulator_level": 0.85,
+      "energy_residual": -260,
+      "temp_slope": 0,
+      "flow_slope": 0,
+      "pressure_slope": 0
+    }
+  }
+]

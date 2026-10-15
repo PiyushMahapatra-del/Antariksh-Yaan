@@ -1,0 +1,124 @@
+{
+  "domain": "eclss",
+  "version": "1.0.0-synthetic",
+  "nodeCount": 14,
+  "nodes": [
+    {
+      "id": "proc_o2_regulator",
+      "type": "Procedure",
+      "name": "O2 Regulator Fault Response",
+      "text": "If O2 regulator is stuck, manually adjust supplemental O2 flow. Monitor ppO2 continuously. Target 21.3 kPa. Alert if ppO2 drops below 19.5 kPa.",
+      "phase": [
+        "Cruise",
+        "MOI",
+        "MarsOrbit",
+        "SurfaceOps",
+        "ReturnCruise"
+      ]
+    },
+    {
+      "id": "proc_cabin_leak",
+      "type": "Procedure",
+      "name": "Cabin Leak Isolation",
+      "text": "Isolate affected section. Don emergency O2 masks. Locate leak using pressure differential sensors. Apply emergency patch. Verify cabin pressure recovery.",
+      "phase": [
+        "Cruise",
+        "MOI",
+        "MarsOrbit",
+        "ReturnCruise"
+      ]
+    },
+    {
+      "id": "proc_co2_scrubber",
+      "type": "Procedure",
+      "name": "CO2 Scrubber Maintenance",
+      "text": "Replace CO2 scrubber cartridge. Verify ppCO2 begins decreasing within 10 minutes. Nominal ppCO2 target: < 0.5 kPa.",
+      "phase": [
+        "Cruise",
+        "MOI",
+        "MarsOrbit",
+        "SurfaceOps",
+        "ReturnCruise"
+      ]
+    },
+    {
+      "id": "proc_hypoxia",
+      "type": "Procedure",
+      "name": "Hypoxia Response Protocol",
+      "text": "SYNTHETIC: NOT REAL MEDICAL PROCEDURE. Restore O2 supply. Move affected crew to safe volume. Apply supplemental O2. Monitor SpO2 continuously. Target SpO2 > 95%.",
+      "phase": [
+        "Cruise",
+        "MOI",
+        "MarsOrbit",
+        "SurfaceOps",
+        "ReturnCruise"
+      ]
+    },
+    {
+      "id": "proc_decompression",
+      "type": "Procedure",
+      "name": "Rapid Decompression Response",
+      "text": "SYNTHETIC: NOT REAL MEDICAL PROCEDURE. Don emergency suits immediately. Seal affected compartment. Initiate emergency repressurization. Check all crew for decompression symptoms.",
+      "phase": [
+        "Cruise",
+        "MOI",
+        "MarsOrbit",
+        "ReturnCruise"
+      ]
+    },
+    {
+      "id": "eq_o2_reg",
+      "type": "Equipment",
+      "name": "O2 Regulator",
+      "text": "Cabin oxygen partial pressure regulator"
+    },
+    {
+      "id": "eq_co2_scrub",
+      "type": "Equipment",
+      "name": "CO2 Scrubber",
+      "text": "Carbon dioxide removal system"
+    },
+    {
+      "id": "sens_ppo2",
+      "type": "Sensor",
+      "name": "Cabin ppO2 Sensor",
+      "text": "Telemetry sensor: Cabin ppO2 Sensor"
+    },
+    {
+      "id": "sens_ppco2",
+      "type": "Sensor",
+      "name": "Cabin ppCO2 Sensor",
+      "text": "Telemetry sensor: Cabin ppCO2 Sensor"
+    },
+    {
+      "id": "sens_cabin_press",
+      "type": "Sensor",
+      "name": "Cabin Pressure Sensor",
+      "text": "Telemetry sensor: Cabin Pressure Sensor"
+    },
+    {
+      "id": "sens_spo2",
+      "type": "Sensor",
+      "name": "Crew SpO2 Wearable Sensor",
+      "text": "Telemetry sensor: Crew SpO2 Wearable Sensor"
+    },
+    {
+      "id": "haz_hypoxia",
+      "type": "Hazard",
+      "name": "Crew Hypoxia",
+      "text": "Insufficient oxygen partial pressure in cabin"
+    },
+    {
+      "id": "haz_co2_toxicity",
+      "type": "Hazard",
+      "name": "CO2 Toxicity",
+      "text": "Elevated carbon dioxide partial pressure causing crew impairment"
+    },
+    {
+      "id": "haz_decompression",
+      "type": "Hazard",
+      "name": "Rapid Decompression",
+      "text": "Loss of cabin pressure due to structural breach"
+    }
+  ]
+}

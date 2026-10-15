@@ -1,0 +1,49 @@
+{
+  "domain": "power",
+  "version": "1.0.0-synthetic",
+  "nodeCount": 5,
+  "nodes": [
+    {
+      "id": "proc_power_shed",
+      "type": "Procedure",
+      "name": "Emergency Power Load Shed",
+      "text": "Shed non-essential loads. Priority order: science instruments, Tier 2 compute, heating pads, lighting. Maintain life support and comms.",
+      "phase": [
+        "Cruise",
+        "MOI",
+        "MarsOrbit",
+        "ReturnCruise"
+      ]
+    },
+    {
+      "id": "proc_safe_mode",
+      "type": "Procedure",
+      "name": "Vehicle Safe Mode Entry",
+      "text": "Shed all non-essential loads. Point solar arrays at Sun. Maintain minimum attitude control. Await crew assessment or ground command.",
+      "phase": [
+        "Cruise",
+        "MOI",
+        "MarsOrbit",
+        "ReturnCruise"
+      ]
+    },
+    {
+      "id": "eq_solar_array",
+      "type": "Equipment",
+      "name": "Solar Array",
+      "text": "Primary power generation from solar irradiance"
+    },
+    {
+      "id": "eq_battery",
+      "type": "Equipment",
+      "name": "Battery Pack",
+      "text": "Lithium-ion battery for power storage"
+    },
+    {
+      "id": "haz_radiation",
+      "type": "Hazard",
+      "name": "Radiation Exposure",
+      "text": "Elevated radiation dose from solar particle event"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "domain": "medical",
+  "version": "1.0.0-synthetic",
+  "nodeCount": 8,
+  "nodes": [
+    {
+      "id": "proc_hypoxia",
+      "type": "Procedure",
+      "name": "Hypoxia Response Protocol",
+      "text": "SYNTHETIC: NOT REAL MEDICAL PROCEDURE. Restore O2 supply. Move affected crew to safe volume. Apply supplemental O2. Monitor SpO2 continuously. Target SpO2 > 95%.",
+      "phase": [
+        "Cruise",
+        "MOI",
+        "MarsOrbit",
+        "SurfaceOps",
+        "ReturnCruise"
+      ]
+    },
+    {
+      "id": "proc_rad_shelter",
+      "type": "Procedure",
+      "name": "Radiation Shelter Protocol",
+      "text": "Move crew to radiation shelter. Reduce EVA activities. Monitor cumulative dose. Resume normal operations when dose rate returns to baseline.",
+      "phase": [
+        "Cruise",
+        "ReturnCruise"
+      ]
+    },
+    {
+      "id": "proc_decompression",
+      "type": "Procedure",
+      "name": "Rapid Decompression Response",
+      "text": "SYNTHETIC: NOT REAL MEDICAL PROCEDURE. Don emergency suits immediately. Seal affected compartment. Initiate emergency repressurization. Check all crew for decompression symptoms.",
+      "phase": [
+        "Cruise",
+        "MOI",
+        "MarsOrbit",
+        "ReturnCruise"
+      ]
+    },
+    {
+      "id": "eq_loop_a",
+      "type": "Equipment",
+      "name": "Coolant Loop A",
+      "text": "Primary thermal control loop with pump, radiator, and accumulator"
+    },
+    {
+      "id": "eq_solar_array",
+      "type": "Equipment",
+      "name": "Solar Array",
+      "text": "Primary power generation from solar irradiance"
+    },
+    {
+      "id": "haz_hypoxia",
+      "type": "Hazard",
+      "name": "Crew Hypoxia",
+      "text": "Insufficient oxygen partial pressure in cabin"
+    },
+    {
+      "id": "haz_decompression",
+      "type": "Hazard",
+      "name": "Rapid Decompression",
+      "text": "Loss of cabin pressure due to structural breach"
+    },
+    {
+      "id": "haz_radiation",
+      "type": "Hazard",
+      "name": "Radiation Exposure",
+      "text": "Elevated radiation dose from solar particle event"
+    }
+  ]
+}
