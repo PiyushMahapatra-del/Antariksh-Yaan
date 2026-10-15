@@ -6,7 +6,7 @@
   "description": "AEGIS TRANSIT — Physics-driven Mars transit mission console (SIMULATION: NOT FLIGHT SOFTWARE)",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npx tsc && npx vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
