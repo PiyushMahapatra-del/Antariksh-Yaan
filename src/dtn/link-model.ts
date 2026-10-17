@@ -13,7 +13,8 @@
  */
 
 import { type Bundle } from './bundle.js';
-import { LIGHT_TIME_1AU_S, BLACKOUT_THETA_DEG } from '../sim/constants.js';
+import { LIGHT_TIME_1AU_S } from '../sim/constants.js';
+import { linkBudget } from '../sim/link-budget.js';
 
 export interface InFlightBundle {
   bundle: Bundle;
@@ -83,36 +84,20 @@ export class DeepSpaceLinkModel {
 
     const rtltSec = owltSec * 2;
 
-    // Conjunction blackout check (theta < 2 deg)
-    const isBlackout = thetaDeg < BLACKOUT_THETA_DEG;
-
     // Contact window check (DSN ground station handover gap)
     const phaseInCycle = (currentSimSeconds % this.contactCycleSec);
     const isHandover = phaseInCycle > (this.contactCycleSec - this.handoverDurationSec);
 
-    // Rate scaling with 1 / d^2
-    const distSq = Math.max(0.1, distanceAu * distanceAu);
-    let dlRate = 500 / distSq; // 500 kbps @ 1 AU
-    let ulRate = 100 / distSq; // 100 kbps @ 1 AU
-
-    let status: 'NOMINAL' | 'DEGRADED' | 'BLACKOUT' | 'OVERRIDE' = 'NOMINAL';
-    let lossProb = 0.001; // 0.1% baseline error rate
+    // Unified link budget calculation
+    const budget = linkBudget(distanceAu, thetaDeg);
+    let dlRate = budget.downlinkRateKbps;
+    let ulRate = budget.uplinkRateKbps;
+    let status: 'NOMINAL' | 'DEGRADED' | 'BLACKOUT' | 'OVERRIDE' = budget.status;
+    const lossProb = budget.lossProbability;
 
     if (this.overrideActive) {
       status = 'OVERRIDE';
-    } else if (isBlackout) {
-      status = 'BLACKOUT';
-      dlRate = 0;
-      ulRate = 0;
-      lossProb = 1.0;
-    } else if (thetaDeg < BLACKOUT_THETA_DEG + 3.0) {
-      // Near-conjunction plasma noise
-      status = 'DEGRADED';
-      const margin = thetaDeg - BLACKOUT_THETA_DEG; // 0 to 3 deg
-      lossProb = 0.1 + (1.0 - margin / 3.0) * 0.8; // scales up to 90%
-      dlRate *= (margin / 3.0);
-      ulRate *= (margin / 3.0);
-    } else if (isHandover) {
+    } else if (isHandover && status !== 'BLACKOUT') {
       status = 'DEGRADED';
       dlRate *= 0.2;
       ulRate *= 0.2;

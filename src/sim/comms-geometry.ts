@@ -93,11 +93,14 @@ export function isInBlackout(
  * @param baseRate Base data rate at 1 AU (bits/second)
  * @returns Available data rate in bits/second
  */
+export { linkBudget, formatLinkRate, type LinkBudgetResult } from './link-budget.js';
+
 export function linkRate(distAU: number, baseRate: number): number {
-  if (distAU <= 0 || !Number.isFinite(distAU)) {
-    return 0;
+  if (!Number.isFinite(distAU) || distAU <= 0) {
+    return baseRate;
   }
-  return baseRate / (distAU * distAU);
+  const effectiveD = Math.max(1.0, distAU);
+  return baseRate / (effectiveD * effectiveD);
 }
 
 /**

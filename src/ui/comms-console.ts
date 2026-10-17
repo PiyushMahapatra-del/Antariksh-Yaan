@@ -17,6 +17,7 @@ import type { DeepSpaceLinkModel, LinkStateSnapshot } from '../dtn/link-model.js
 import type { PrioritySpool } from '../dtn/spool.js';
 import type { GroundSegment } from '../dtn/ground-segment.js';
 import { formatDuration } from '../main.js';
+import { formatLinkRate } from '../sim/link-budget.js';
 
 export class CommsConsole {
   private container: HTMLElement;
@@ -395,7 +396,7 @@ export class CommsConsole {
     this.owltEl.textContent = formatDuration(linkState.oneWayLightTimeSec);
     this.rtltEl.textContent = formatDuration(linkState.roundTripLightTimeSec);
     this.thetaEl.textContent = `${linkState.thetaDeg.toFixed(2)}° ${linkState.thetaDeg < 2.0 ? '⚠ BLACKOUT' : ''}`;
-    this.ratesEl.textContent = `${linkState.downlinkRateKbps.toFixed(1)} / ${linkState.uplinkRateKbps.toFixed(1)} kbps`;
+    this.ratesEl.textContent = `${formatLinkRate(linkState.downlinkRateKbps * 1000)} / ${formatLinkRate(linkState.uplinkRateKbps * 1000)}`;
 
     // 3. Ground telemetry age
     this.groundAgeEl.textContent = this.groundSegment.getTelemetryAgeString(currentSimTime);

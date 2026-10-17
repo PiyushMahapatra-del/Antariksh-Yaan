@@ -10,8 +10,10 @@ import {
   isInBlackout,
   linkRate,
   packetLossProbability,
+  linkBudget,
+  formatLinkRate,
 } from '@sim/comms-geometry';
-import { LIGHT_TIME_1AU_S, DOWNLINK_RATE_1AU } from '@sim/constants';
+import { LIGHT_TIME_1AU_S, DOWNLINK_RATE_1AU, UPLINK_RATE_1AU } from '@sim/constants';
 
 describe('Light-time calculations', () => {
   it('light-time at 1 AU ≈ 499 seconds', () => {
@@ -92,21 +94,80 @@ describe('Blackout detection', () => {
   });
 });
 
-describe('Link rate scaling', () => {
-  it('rate at 1 AU equals base rate', () => {
-    expect(linkRate(1, DOWNLINK_RATE_1AU)).toBeCloseTo(DOWNLINK_RATE_1AU, 0);
+describe('Unified LinkBudget & Rate Scaling', () => {
+  it('no NaN or Infinity anywhere across wide distance and angle sweep', () => {
+    const testDistances = [0, 0.0000017, 0.01, 0.5, 1.0, 1.5, 2.0, 3.0, 5.0, 10.0, -1, NaN, Infinity];
+    const testAngles = [0, 1.0, 2.0, 2.5, 3.5, 5.0, 30.0, 90.0, 180.0, -5, NaN, Infinity];
+
+    for (const d of testDistances) {
+      for (const th of testAngles) {
+        const budget = linkBudget(d, th);
+        expect(Number.isNaN(budget.downlinkBps)).toBe(false);
+        expect(Number.isFinite(budget.downlinkBps)).toBe(true);
+        expect(Number.isNaN(budget.uplinkBps)).toBe(false);
+        expect(Number.isFinite(budget.uplinkBps)).toBe(true);
+        expect(budget.downlinkBps).toBeGreaterThanOrEqual(0);
+        expect(budget.uplinkBps).toBeGreaterThanOrEqual(0);
+
+        const fmtDl = formatLinkRate(budget.downlinkBps);
+        const fmtUl = formatLinkRate(budget.uplinkBps);
+        expect(fmtDl).not.toContain('NaN');
+        expect(fmtDl).not.toContain('Infinity');
+        expect(fmtUl).not.toContain('NaN');
+        expect(fmtUl).not.toContain('Infinity');
+      }
+    }
   });
 
-  it('rate at 2 AU is 1/4 of base rate', () => {
-    expect(linkRate(2, DOWNLINK_RATE_1AU)).toBeCloseTo(DOWNLINK_RATE_1AU / 4, 0);
+  it('rate is monotonically non-increasing with distance', () => {
+    let prevRate = Infinity;
+    // Step distance from 0.1 AU up to 6.0 AU with theta = 180 (nominal)
+    for (let d = 0.1; d <= 6.0; d += 0.1) {
+      const budget = linkBudget(d, 180);
+      expect(budget.downlinkBps).toBeLessThanOrEqual(prevRate + 1e-6);
+      prevRate = budget.downlinkBps;
+    }
   });
 
-  it('rate at 0.5 AU is 4x base rate', () => {
-    expect(linkRate(0.5, DOWNLINK_RATE_1AU)).toBeCloseTo(DOWNLINK_RATE_1AU * 4, 0);
+  it('equals the cap at d <= 1 AU', () => {
+    const at0 = linkBudget(0.0000017, 180);
+    expect(at0.downlinkBps).toBe(DOWNLINK_RATE_1AU);
+    expect(at0.uplinkBps).toBe(UPLINK_RATE_1AU);
+
+    const atHalf = linkBudget(0.5, 180);
+    expect(atHalf.downlinkBps).toBe(DOWNLINK_RATE_1AU);
+    expect(atHalf.uplinkBps).toBe(UPLINK_RATE_1AU);
+
+    const atOne = linkBudget(1.0, 180);
+    expect(atOne.downlinkBps).toBe(DOWNLINK_RATE_1AU);
+    expect(atOne.uplinkBps).toBe(UPLINK_RATE_1AU);
   });
 
-  it('rate at 0 AU returns 0 (edge case)', () => {
-    expect(linkRate(0, DOWNLINK_RATE_1AU)).toBe(0);
+  it('at 3 AU it is about 1/9 of the 1 AU rate', () => {
+    const atOne = linkBudget(1.0, 180);
+    const atThree = linkBudget(3.0, 180);
+
+    const expectedDl = atOne.downlinkBps / 9;
+    const expectedUl = atOne.uplinkBps / 9;
+
+    expect(atThree.downlinkBps).toBeCloseTo(expectedDl, 1);
+    expect(atThree.uplinkBps).toBeCloseTo(expectedUl, 1);
+  });
+
+  it('formats with adaptive units (bps, kbps, Mbps) and at most 4 significant digits', () => {
+    expect(formatLinkRate(0)).toBe('0 bps');
+    expect(formatLinkRate(500)).toBe('500 bps');
+    expect(formatLinkRate(1200)).toBe('1.2 kbps');
+    expect(formatLinkRate(55555.55)).toBe('55.56 kbps');
+    expect(formatLinkRate(500000)).toBe('500 kbps');
+    expect(formatLinkRate(1500000)).toBe('1.5 Mbps');
+    expect(formatLinkRate(12345678)).toBe('12.35 Mbps');
+  });
+
+  it('verifies linkRate backward-compatible helper behavior with 1 AU cap', () => {
+    expect(linkRate(1.0, DOWNLINK_RATE_1AU)).toBe(DOWNLINK_RATE_1AU);
+    expect(linkRate(0.5, DOWNLINK_RATE_1AU)).toBe(DOWNLINK_RATE_1AU);
+    expect(linkRate(2.0, DOWNLINK_RATE_1AU)).toBeCloseTo(DOWNLINK_RATE_1AU / 4, 1);
   });
 });
 

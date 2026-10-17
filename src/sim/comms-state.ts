@@ -11,8 +11,7 @@ import {
   commDistance,
   isInBlackout,
   lightTimeAU,
-  linkRate,
-  packetLossProbability,
+  linkBudget,
   sunEarthShipAngle,
 } from './comms-geometry.js';
 import type { CommState, LinkState } from '../core/types.js';
@@ -67,20 +66,13 @@ export class CommsStateManager {
     const oneWaySec = lightTimeAU(distAU);
     const roundTripSec = 2 * oneWaySec;
     const thetaDeg = sunEarthShipAngle(shipPos, earthPos);
-    const inBlackout = isInBlackout(thetaDeg);
-    const lossProb = packetLossProbability(thetaDeg);
-    const baseRate = linkRate(distAU, DOWNLINK_RATE_1AU);
-    const effectiveRate = inBlackout ? 0 : baseRate * (1 - lossProb);
+    const budget = linkBudget(distAU, thetaDeg);
 
     let linkState: LinkState;
     if (this.overrideEnabled) {
       linkState = 'OVERRIDE';
-    } else if (inBlackout) {
-      linkState = 'BLACKOUT';
-    } else if (lossProb > 0.001) {
-      linkState = 'DEGRADED';
     } else {
-      linkState = 'NOMINAL';
+      linkState = budget.status;
     }
 
     this.state = {
@@ -89,8 +81,8 @@ export class CommsStateManager {
       roundTripSec: roundTripSec,
       thetaDeg: thetaDeg,
       linkState,
-      linkRateBps: effectiveRate,
-      packetLossProb: lossProb,
+      linkRateBps: budget.downlinkBps,
+      packetLossProb: budget.lossProbability,
       isOverridden: this.overrideEnabled,
       overrideDelaySec: this.overrideDelaySec,
     };

@@ -10,6 +10,7 @@ import { EventBus } from './core/event-bus.js';
 import type { AegisEventMap, WarpPreset, MissionPhase } from './core/types.js';
 import { SimLoop } from './sim/sim-loop.js';
 import { AU_KM, SECONDS_PER_DAY } from './sim/constants.js';
+import { formatLinkRate } from './sim/link-budget.js';
 import { TacticalMap, SkyRenderer, formatDistance, type CameraMode, type LockTarget } from './render/index.js';
 import {
   TelemetryPanel,
@@ -797,7 +798,7 @@ function setupConsole(): void {
       commThetaVal.textContent = `${commState.thetaDeg.toFixed(1)}°`;
     }
     if (commRateVal) {
-      commRateVal.textContent = `${(commState.linkRateBps / 1000).toFixed(1)} kbps`;
+      commRateVal.textContent = formatLinkRate(commState.linkRateBps);
     }
     if (commLossVal) {
       commLossVal.textContent = `${(commState.packetLossProb * 100).toFixed(1)}%`;
