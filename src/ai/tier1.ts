@@ -372,6 +372,20 @@ export class RandomForest {
     };
   }
 
+  /** High-level diagnosis on raw state or features */
+  diagnose(state: unknown): { faultClass: FaultClass; confidence: number; classProbs: number[]; oodScore: number } {
+    const raw = featurize(state);
+    const std = this.standardize(raw);
+    const pred = this.predict(std);
+    const ood = computeOODScore(raw, this.background, 5, this);
+    return {
+      faultClass: pred.predictedClass as FaultClass,
+      confidence: pred.confidence,
+      classProbs: pred.classProbs,
+      oodScore: ood.score,
+    };
+  }
+
   /** Load forest from serialized JSON */
   loadFromJSON(data: ModelArtifact): void {
     if (data.trees) this.trees = data.trees;
@@ -413,13 +427,14 @@ export class RandomForest {
 export function computeExactShapley(
   model: RandomForest,
   rawFeatures: number[],
-  background: number[][],
+  background?: number[][],
   classIdx: number = 0
 ): { shapley: ShapleyValue[]; baseline: number; prediction: number; additivityError: number } {
   const n = Math.min(rawFeatures.length, 6);
   const nCoalitions = 1 << n; // 2^6 = 64
-  const nBackground = Math.min(background.length > 0 ? background.length : model.background.length, 30);
-  const bgData = background.length > 0 ? background : model.background;
+  const bg = background && background.length > 0 ? background : model.background;
+  const nBackground = Math.min(bg && bg.length > 0 ? bg.length : 1, 30);
+  const bgData = bg && bg.length > 0 ? bg : [new Array(n).fill(0)];
 
   const stdFeatures = model.standardize(rawFeatures.slice(0, n));
   const prediction = model.predictStandardized(stdFeatures).classProbs[classIdx];

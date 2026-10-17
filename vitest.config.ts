@@ -1,8 +1,19 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
+import { execSync } from 'child_process';
+
+let commitHash = 'test-build';
+try {
+  commitHash = execSync('git rev-parse --short HEAD').toString().trim();
+} catch (_e) {
+  // fallback if git command fails
+}
 
 export default defineConfig({
+  define: {
+    __GIT_COMMIT_HASH__: JSON.stringify(commitHash),
+  },
   resolve: {
     alias: {
       '@sim': resolve(__dirname, 'src/sim'),

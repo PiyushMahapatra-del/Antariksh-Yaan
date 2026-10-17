@@ -45,6 +45,14 @@ async function main() {
       } catch (e) {
         console.log('Interaction note:', (e as Error).message);
       }
+    } else if (prefix.includes('a5') || prefix.includes('eval')) {
+      try {
+        await page.click('.rail-btn[data-tab="EVAL"]');
+        // Wait for worker evaluation & DOM render
+        await page.waitForTimeout(2000);
+      } catch (e) {
+        console.log('Interaction note:', (e as Error).message);
+      }
     }
 
     const filename = `docs/screenshots/${prefix}-${vp.name}.png`;
