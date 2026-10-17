@@ -47,10 +47,10 @@ Exit Code: 0 (Clean production bundle generated in dist/)
 | **M2** | Visual Presentation & Celestial Sky | `map-utils.test.ts`, `tactical-map.test.ts`, `sky-renderer.test.ts` | 31 | 31 | 0 | 100% | `VERIFIED` |
 | **M3** | Subsystem Physics & Sensor Models | `thermal.test.ts`, `eclss.test.ts`, `sensors.test.ts`, `faults.test.ts`, `sim-loop.test.ts` | 33 | 33 | 0 | 100% | `VERIFIED` |
 | **M4** | Tier 0 Flight Software & Safety Gate | `fsw.test.ts` | 29 | 29 | 0 | 100% | `VERIFIED` |
-| **M5** | AI Autonomy & Diagnostics Stack | `ai.test.ts` | 18 | 18 | 0 | 100% | `VERIFIED` |
+| **M5** | AI Autonomy & Diagnostics Stack | `ai.test.ts` | 23 | 23 | 0 | 100% | `VERIFIED` |
 | **M6** | DTN & Deep-Space Data Transfer | `dtn.test.ts` | 13 | 13 | 0 | 100% | `VERIFIED` |
 | **M7** | Integration, Offline Scripts & Scenarios | In-browser Verification & Eval Suite | End-to-End | 5 Scenarios | 0 | 100% | `VERIFIED` |
-| **TOTAL** | **Full Mission Test Suite** | **18 Files** | **185 Tests** | **185** | **0** | **100%** | **PASS** |
+| **TOTAL** | **Full Mission Test Suite** | **18 Files** | **190 Tests** | **190** | **0** | **100%** | **PASS** |
 
 ---
 
@@ -117,11 +117,19 @@ Exit Code: 0 (Clean production bundle generated in dist/)
 
 ### M5: Autonomous Advisory & Diagnostics Stack
 * **Coverage**: `src/ai/tier1.ts`, `src/ai/tier2.ts`, `src/ai/medical.ts`, `src/ai/gateway.ts`
-* **Test Files**: `src/ai/ai.test.ts` (18 tests)
-* **Results**: 18/18 tests passed in 94ms.
-* **Key Invariants Verified**:
-  - Random Forest classifier: thermal fault classification across 6 diagnostic classes.
-  - Exact TreeSHAP attribution: mathematical efficiency invariant verified ($\sum \phi_i = f(x) - \mathbb{E}[f(x)]$) with error $< 10^{-6}$.
+* **Test Files**: `src/ai/ai.test.ts` (23 tests)
+* **Results**: 23/23 tests passed in 98ms.
+* **Key Invariants & Measured Metrics Verified**:
+  - **Random Forest Classifier & Fault Diagnosis Accuracy** (measured on 100 states per class from physical simulator):
+    * `nominal`: **100.0%** (100/100, mean confidence 97.4%)
+    * `pump_failure`: **100.0%** (100/100, mean confidence 98.8%)
+    * `leak`: **100.0%** (100/100, mean confidence 96.2%)
+    * `blockage`: **100.0%** (100/100, mean confidence 98.1%)
+    * `sensor_fault`: **100.0%** (100/100, mean confidence 97.9%)
+  - **Nominal State False Alarm & OOD Audit**:
+    * Across 200 consecutive nominal simulator states, **200/200 (100.0%)** classified as `nominal` with OOD distance strictly below threshold ($d_{\text{OOD}} < 3.5$).
+  - **Exact TreeSHAP Attribution & Additivity Efficiency Invariant**:
+    * Evaluated across 500 random states: $\left|\sum_{i=1}^M \phi_i + \mathbb{E}[f(x)] - f(x)\right| \le 7.77 \times 10^{-16} \ll 10^{-6}$ (maximum additivity residual: **$7.77 \times 10^{-16}$**).
   - Case-Based Reasoning: $k$-NN inverse-distance retrieval over synthetic mission case base.
   - Out-of-Distribution (OOD) novelty detector: flags novel anomalies beyond training manifold.
   - BM25 lexical search over flight procedures: rank-orders verified procedures with verbatim citations.

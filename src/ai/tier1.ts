@@ -12,9 +12,124 @@
 
 import { SeededRng } from '../sim/rng.js';
 import type { DiagnosisObject, ShapleyValue, SimilarCase, SensorHealthReport, Counterfactual } from './gateway.js';
+export type { ShapleyValue } from './gateway.js';
+import rawModelData from '../../data/model.json';
 
 // ============================================================================
-// RANDOM FOREST
+// FAULT CLASSES & PHYSICAL FEATURE SPECS
+// ============================================================================
+
+/** Fault classes */
+export const FAULT_CLASSES = ['nominal', 'pump_failure', 'leak', 'blockage', 'sensor_fault', 'unknown'] as const;
+export type FaultClass = typeof FAULT_CLASSES[number];
+
+/** Feature names for the thermal domain */
+export const THERMAL_FEATURES = [
+  'flow_rate',
+  'pump_dp',
+  'pump_rpm',
+  'outlet_temp',
+  'inlet_temp',
+  'accumulator_level',
+] as const;
+export type ThermalFeature = typeof THERMAL_FEATURES[number];
+
+export const FEATURE_UNITS: Record<string, string> = {
+  flow_rate: 'kg/s',
+  pump_dp: 'kPa',
+  pump_rpm: 'RPM',
+  outlet_temp: 'K',
+  inlet_temp: 'K',
+  accumulator_level: 'frac',
+};
+
+export interface StandardizationParams {
+  means: number[];
+  stds: number[];
+}
+
+/** Default empirical means and standard deviations for nominal physical operations */
+export const DEFAULT_STANDARDIZATION: StandardizationParams = {
+  means: [0.45, 155.0, 3600.0, 292.5, 290.0, 0.88],
+  stds: [0.02, 5.0, 50.0, 3.0, 2.0, 0.03],
+};
+
+// ============================================================================
+// SINGLE FEATURIZE & STANDARDIZE PIPELINE
+// ============================================================================
+
+/**
+ * Universal featurize function: extracts the 6 physical thermal features
+ * from telemetry maps, subsystem state objects, or raw vectors.
+ */
+export function featurize(state: unknown): number[] {
+  if (Array.isArray(state)) {
+    return state.slice(0, 6).map(v => typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  }
+
+  if (state instanceof Map) {
+    const flow = state.get('thermal_loopA_flow')?.measured ?? 0.45;
+    const dp = state.get('thermal_loopA_pumpDeltaP')?.measured
+      ?? state.get('thermal_loopA_pressure')?.measured
+      ?? 155.0;
+    const rpm = state.get('thermal_loopA_pumpRpm')?.measured ?? 3600.0;
+    const tout = state.get('thermal_loopA_tempOut')?.measured ?? 292.5;
+    const tin = state.get('thermal_loopA_tempIn')?.measured ?? 290.0;
+    const rawAccum = state.get('thermal_loopA_accum')?.measured ?? 88.0;
+    const accum = rawAccum > 1.0 ? rawAccum / 100.0 : rawAccum;
+
+    return [flow, dp, rpm, tout, tin, accum];
+  }
+
+  if (state && typeof state === 'object') {
+    const s = state as Record<string, unknown>;
+    if ('loopA' in s) {
+      return featurize(s.loopA);
+    }
+    if ('flowRate' in s && 'pumpDeltaP' in s) {
+      const loop = s as { flowRate?: number; pumpDeltaP?: number; pumpRpm?: number; coolantTempOut?: number; coolantTempIn?: number; accumulatorLevel?: number };
+      const accum = (loop.accumulatorLevel ?? 0.88) > 1.0 ? (loop.accumulatorLevel! / 100.0) : (loop.accumulatorLevel ?? 0.88);
+      return [
+        loop.flowRate ?? 0.45,
+        loop.pumpDeltaP ?? 155.0,
+        loop.pumpRpm ?? 3600.0,
+        loop.coolantTempOut ?? 292.5,
+        loop.coolantTempIn ?? 290.0,
+        accum,
+      ];
+    }
+    const rec = s as Record<string, number | undefined>;
+    const flow = rec.flow_rate ?? rec.flowRate ?? 0.45;
+    const dp = rec.pump_dp ?? rec.pumpDeltaP ?? rec.pump_pressure ?? 155.0;
+    const rpm = rec.pump_rpm ?? rec.pumpRpm ?? 3600.0;
+    const tout = rec.outlet_temp ?? rec.coolantTempOut ?? 292.5;
+    const tin = rec.inlet_temp ?? rec.coolantTempIn ?? 290.0;
+    let accum = rec.accumulator_level ?? rec.accumulatorLevel ?? 0.88;
+    if (accum > 1.0) accum = accum / 100.0;
+
+    return [flow, dp, rpm, tout, tin, accum];
+  }
+
+  return [0.45, 155.0, 3600.0, 292.5, 290.0, 0.88];
+}
+
+/**
+ * Standardize features: z = (x - mean) / std.
+ */
+export function standardize(
+  features: number[],
+  means: number[] = DEFAULT_STANDARDIZATION.means,
+  stds: number[] = DEFAULT_STANDARDIZATION.stds
+): number[] {
+  return features.map((val, i) => {
+    const mean = means[i] ?? 0;
+    const std = stds[i] && stds[i] > 0 ? stds[i] : 1;
+    return (val - mean) / std;
+  });
+}
+
+// ============================================================================
+// RANDOM FOREST CLASSIFIER (CART DECISION TREES)
 // ============================================================================
 
 /** A single decision tree node */
@@ -26,49 +141,218 @@ export interface TreeNode {
   classProbs: number[] | null; // leaf: probability distribution over classes
 }
 
-/** Fault classes */
-export const FAULT_CLASSES = ['nominal', 'pump_failure', 'leak', 'blockage', 'sensor_fault', 'unknown'] as const;
-export type FaultClass = typeof FAULT_CLASSES[number];
+export interface ModelArtifact {
+  features?: string[];
+  units?: string[];
+  standardization?: StandardizationParams;
+  trees: TreeNode[];
+  background?: number[][];
+}
 
-/** Feature names for the thermal domain */
-export const THERMAL_FEATURES = [
-  'flow_rate', 'pump_dp', 'pump_rpm', 'outlet_temp', 'inlet_temp',
-  'accumulator_level', 'energy_residual', 'temp_slope', 'flow_slope', 'pressure_slope'
-] as const;
+/**
+ * Recursive CART decision tree training on standardized data using Gini impurity.
+ */
+function trainCARTNode(
+  samples: { features: number[]; classIdx: number }[],
+  maxDepth: number,
+  minSamplesLeaf: number,
+  rng: SeededRng,
+  featuresPerSplit: number = 4
+): TreeNode {
+  const nClasses = FAULT_CLASSES.length;
+  const nSamples = samples.length;
+
+  // Calculate class probabilities
+  const classCounts = new Array(nClasses).fill(0);
+  for (const s of samples) {
+    if (s.classIdx >= 0 && s.classIdx < nClasses) {
+      classCounts[s.classIdx]++;
+    }
+  }
+  const classProbs = classCounts.map(c => nSamples > 0 ? c / nSamples : 0);
+
+  const isPure = classCounts.filter(c => c > 0).length <= 1;
+  if (maxDepth <= 0 || nSamples <= minSamplesLeaf || isPure) {
+    return { featureIndex: 0, threshold: 0, left: null, right: null, classProbs };
+  }
+
+  // Feature subspace selection
+  const allIndices = [0, 1, 2, 3, 4, 5];
+  for (let i = allIndices.length - 1; i > 0; i--) {
+    const j = rng.randInt(0, i);
+    [allIndices[i], allIndices[j]] = [allIndices[j], allIndices[i]];
+  }
+  const candidateFeatures = allIndices.slice(0, featuresPerSplit);
+
+  let bestGini = Infinity;
+  let bestFeature = -1;
+  let bestThreshold = 0;
+  let bestLeft: typeof samples = [];
+  let bestRight: typeof samples = [];
+
+  for (const fIdx of candidateFeatures) {
+    const values = samples.map(s => s.features[fIdx]).sort((a, b) => a - b);
+    if (values[0] === values[values.length - 1]) continue;
+
+    // Test candidate split thresholds
+    const step = Math.max(1, Math.floor(values.length / 12));
+    for (let k = step; k < values.length; k += step) {
+      const thresh = (values[k - 1] + values[k]) / 2;
+      const left: typeof samples = [];
+      const right: typeof samples = [];
+
+      for (const s of samples) {
+        if (s.features[fIdx] <= thresh) left.push(s);
+        else right.push(s);
+      }
+
+      if (left.length < minSamplesLeaf || right.length < minSamplesLeaf) continue;
+
+      const giniLeft = computeGini(left, nClasses);
+      const giniRight = computeGini(right, nClasses);
+      const weightedGini = (left.length / nSamples) * giniLeft + (right.length / nSamples) * giniRight;
+
+      if (weightedGini < bestGini) {
+        bestGini = weightedGini;
+        bestFeature = fIdx;
+        bestThreshold = thresh;
+        bestLeft = left;
+        bestRight = right;
+      }
+    }
+  }
+
+  if (bestFeature === -1 || bestLeft.length === 0 || bestRight.length === 0) {
+    return { featureIndex: 0, threshold: 0, left: null, right: null, classProbs };
+  }
+
+  return {
+    featureIndex: bestFeature,
+    threshold: bestThreshold,
+    left: trainCARTNode(bestLeft, maxDepth - 1, minSamplesLeaf, rng, featuresPerSplit),
+    right: trainCARTNode(bestRight, maxDepth - 1, minSamplesLeaf, rng, featuresPerSplit),
+    classProbs: null,
+  };
+}
+
+function computeGini(samples: { classIdx: number }[], nClasses: number): number {
+  const counts = new Array(nClasses).fill(0);
+  for (const s of samples) counts[s.classIdx]++;
+  const n = samples.length;
+  let sumSq = 0;
+  for (let c = 0; c < nClasses; c++) {
+    const p = counts[c] / n;
+    sumSq += p * p;
+  }
+  return 1 - sumSq;
+}
 
 /**
  * Random Forest Classifier.
- * 50-100 trees, depth <= 8. Trained offline, loaded from model.json.
+ * 30-60 trees, depth <= 8. Trained on standardized thermal features.
  */
 export class RandomForest {
   private trees: TreeNode[] = [];
   private _nClasses: number = FAULT_CLASSES.length;
-  
-  constructor() {}
-  
-  get numTrees(): number { return this.trees.length; }
-  get numClasses(): number { return this._nClasses; }
+  public standardization: StandardizationParams = { ...DEFAULT_STANDARDIZATION };
+  public background: number[][] = [];
 
-  /** Build a forest from inline synthetic training (for demo when no model.json exists) */
-  buildSyntheticForest(nTrees: number = 60, maxDepth: number = 8, seed: number = 42): void {
-    const rng = new SeededRng(seed);
-    this.trees = [];
-    
-    for (let t = 0; t < nTrees; t++) {
-      this.trees.push(this._buildTree(rng, maxDepth, 0));
+  constructor() {
+    const data = rawModelData as unknown as ModelArtifact;
+    if (data && data.trees && data.trees.length > 0) {
+      this.loadFromJSON(data);
+    } else {
+      this.buildSyntheticForest(30, 6, 42);
     }
   }
 
-  /** Predict class probabilities for a feature vector */
-  predict(features: number[]): { classProbs: number[]; predictedClass: FaultClass; confidence: number } {
+  get numTrees(): number { return this.trees.length; }
+  get numClasses(): number { return this._nClasses; }
+
+  /** Standardize raw features using model standardization parameters */
+  standardize(rawFeatures: number[]): number[] {
+    return standardize(rawFeatures, this.standardization.means, this.standardization.stds);
+  }
+
+  /** Build and train forest from physics-aligned synthetic samples */
+  buildSyntheticForest(nTrees: number = 30, maxDepth: number = 6, seed: number = 42): void {
+    const rng = new SeededRng(seed);
+    const samplesPerClass = 200;
+    const allSamples: { features: number[]; classIdx: number }[] = [];
+
+    // Synthesize physical samples
+    for (let c = 0; c < 5; c++) {
+      for (let s = 0; s < samplesPerClass; s++) {
+        let flow = 0.45 + rng.gaussian(0, 0.015);
+        let dp = 155.0 + rng.gaussian(0, 4.0);
+        let rpm = 3600 + rng.gaussian(0, 30);
+        let tout = 292.5 + rng.gaussian(0, 2.0);
+        const tin = 290.0 + rng.gaussian(0, 1.5);
+        let accum = 0.88 + rng.gaussian(0, 0.02);
+
+        if (c === 1) { // pump_failure
+          flow = 0.15 + rng.gaussian(0, 0.02);
+          dp = 77.5 + rng.gaussian(0, 5.0);
+          rpm = 2400 + rng.gaussian(0, 60);
+          tout = 312.0 + rng.gaussian(0, 6.0);
+        } else if (c === 2) { // leak
+          accum = 0.15 + rng.random() * 0.25;
+        } else if (c === 3) { // blockage
+          flow = 0.01 + rng.gaussian(0, 0.003);
+          dp = 320.0 + rng.gaussian(0, 15.0);
+          rpm = 3200 + rng.gaussian(0, 60);
+          tout = 325.0 + rng.gaussian(0, 8.0);
+        } else if (c === 4) { // sensor_fault
+          tout = 373.15 + rng.gaussian(0, 0.5);
+        }
+
+        const raw = [flow, dp, rpm, tout, tin, accum];
+        const std = this.standardize(raw);
+        allSamples.push({ features: std, classIdx: c });
+      }
+    }
+
+    // Train trees
+    this.trees = [];
+    const n = allSamples.length;
+    for (let t = 0; t < nTrees; t++) {
+      const bag: typeof allSamples = [];
+      for (let i = 0; i < n; i++) {
+        bag.push(allSamples[rng.randInt(0, n - 1)]);
+      }
+      this.trees.push(trainCARTNode(bag, maxDepth, 4, rng, 4));
+    }
+
+    // Build nominal standardized background dataset
+    this.background = [];
+    for (let i = 0; i < 30; i++) {
+      const rawNominal = [
+        0.45 + rng.gaussian(0, 0.015),
+        155.0 + rng.gaussian(0, 4.0),
+        3600 + rng.gaussian(0, 30),
+        292.5 + rng.gaussian(0, 2.0),
+        290.0 + rng.gaussian(0, 1.5),
+        0.88 + rng.gaussian(0, 0.02),
+      ];
+      this.background.push(this.standardize(rawNominal));
+    }
+  }
+
+  /** Predict class probabilities for a feature vector (raw or standardized) */
+  predict(features: number[], isStandardized: boolean = false): { classProbs: number[]; predictedClass: FaultClass; confidence: number } {
+    const stdFeatures = isStandardized ? features : this.standardize(features);
+    return this.predictStandardized(stdFeatures);
+  }
+
+  /** Direct inference on standardized features */
+  predictStandardized(stdFeatures: number[]): { classProbs: number[]; predictedClass: FaultClass; confidence: number } {
     if (this.trees.length === 0) {
       return { classProbs: Array(this._nClasses).fill(1 / this._nClasses), predictedClass: 'unknown', confidence: 0 };
     }
 
     const avgProbs = Array(this._nClasses).fill(0);
-    
     for (const tree of this.trees) {
-      const probs = this._traverseTree(tree, features);
+      const probs = this._traverseTree(tree, stdFeatures);
       if (probs) {
         for (let i = 0; i < this._nClasses; i++) {
           avgProbs[i] += probs[i] / this.trees.length;
@@ -89,119 +373,99 @@ export class RandomForest {
   }
 
   /** Load forest from serialized JSON */
-  loadFromJSON(data: { trees: TreeNode[] }): void {
-    this.trees = data.trees;
+  loadFromJSON(data: ModelArtifact): void {
+    if (data.trees) this.trees = data.trees;
+    if (data.standardization) this.standardization = data.standardization;
+    if (data.background) this.background = data.background;
   }
 
   /** Serialize forest to JSON */
-  toJSON(): { trees: TreeNode[] } {
-    return { trees: this.trees };
+  toJSON(): ModelArtifact {
+    return {
+      features: [...THERMAL_FEATURES],
+      units: Object.values(FEATURE_UNITS),
+      standardization: this.standardization,
+      trees: this.trees,
+      background: this.background,
+    };
   }
 
   private _traverseTree(node: TreeNode, features: number[]): number[] | null {
     if (node.classProbs !== null) return node.classProbs;
     if (node.left === null || node.right === null) return null;
-    
+
     if (features[node.featureIndex] <= node.threshold) {
       return this._traverseTree(node.left, features);
     } else {
       return this._traverseTree(node.right, features);
     }
   }
-
-  private _buildTree(rng: SeededRng, maxDepth: number, depth: number): TreeNode {
-    // Build a synthetic tree that responds to thermal features
-    if (depth >= maxDepth || rng.random() < 0.3) {
-      // Leaf: generate class probabilities
-      const probs = Array(this._nClasses).fill(0);
-      const dominantClass = rng.randInt(0, this._nClasses - 1);
-      probs[dominantClass] = 0.5 + rng.random() * 0.4;
-      const remaining = 1 - probs[dominantClass];
-      for (let i = 0; i < this._nClasses; i++) {
-        if (i !== dominantClass) probs[i] = remaining / (this._nClasses - 1);
-      }
-      return { featureIndex: 0, threshold: 0, left: null, right: null, classProbs: probs };
-    }
-
-    const featureIndex = rng.randInt(0, THERMAL_FEATURES.length - 1);
-    // Thresholds based on feature semantics
-    const thresholds: number[] = [0.5, 50, 2000, 300, 280, 0.5, 0.1, 0.5, 0.1, 0.1];
-    const threshold = thresholds[featureIndex] * (0.5 + rng.random());
-
-    return {
-      featureIndex,
-      threshold,
-      left: this._buildTree(rng, maxDepth, depth + 1),
-      right: this._buildTree(rng, maxDepth, depth + 1),
-      classProbs: null,
-    };
-  }
 }
 
 // ============================================================================
-// EXACT SHAPLEY VALUES
+// EXACT SHAPLEY VALUES (EFFICIENCY-PRESERVING INTERVENTIONAL TreeSHAP)
 // ============================================================================
 
 /**
- * Compute EXACT Shapley values for a feature vector.
- * Uses 2^n coalitions (feasible for n <= 10 features).
- * Interventional background of 50 samples.
+ * Compute EXACT Shapley values for a physical feature vector.
+ * Sum(phi) + baseline = prediction (efficiency invariant preserved < 1e-6).
  */
 export function computeExactShapley(
   model: RandomForest,
-  features: number[],
+  rawFeatures: number[],
   background: number[][],
   classIdx: number = 0
 ): { shapley: ShapleyValue[]; baseline: number; prediction: number; additivityError: number } {
-  const n = features.length;
-  const nCoalitions = 1 << n; // 2^n
-  const nBackground = Math.min(background.length, 50);
-  
-  // Compute prediction for full feature set
-  const prediction = model.predict(features).classProbs[classIdx];
-  
-  // Compute baseline (expected value over background)
-  let baseline = 0;
-  for (let b = 0; b < nBackground; b++) {
-    baseline += model.predict(background[b]).classProbs[classIdx];
-  }
-  baseline /= nBackground;
+  const n = Math.min(rawFeatures.length, 6);
+  const nCoalitions = 1 << n; // 2^6 = 64
+  const nBackground = Math.min(background.length > 0 ? background.length : model.background.length, 30);
+  const bgData = background.length > 0 ? background : model.background;
 
-  // Compute marginal contribution for each feature using all coalitions
-  const phi = Array(n).fill(0);
+  const stdFeatures = model.standardize(rawFeatures.slice(0, n));
+  const prediction = model.predictStandardized(stdFeatures).classProbs[classIdx];
+
+  // Precompute coalition weights
+  const weights = new Float64Array(n);
+  for (let s = 0; s < n; s++) {
+    weights[s] = (factorial(s) * factorial(n - s - 1)) / factorial(n);
+  }
+
+  // Precompute v(S) for each coalition across background
+  const v = new Float64Array(nCoalitions);
+  const inputBuffer = new Float64Array(n);
+
+  for (let S = 0; S < nCoalitions; S++) {
+    let sum = 0;
+    for (let b = 0; b < nBackground; b++) {
+      const bg = bgData[b];
+      for (let i = 0; i < n; i++) {
+        inputBuffer[i] = (S & (1 << i)) ? stdFeatures[i] : (bg ? bg[i] : 0);
+      }
+      sum += model.predictStandardized(Array.from(inputBuffer)).classProbs[classIdx];
+    }
+    v[S] = sum / nBackground;
+  }
+
+  const baseline = v[0];
+  const phi = new Float64Array(n);
 
   for (let i = 0; i < n; i++) {
+    const bitI = 1 << i;
+    let phiI = 0;
     for (let S = 0; S < nCoalitions; S++) {
-      if (S & (1 << i)) continue; // Skip if i is already in S
-      
+      if (S & bitI) continue;
       const sizeS = countBits(S);
-      const weight = factorial(sizeS) * factorial(n - sizeS - 1) / factorial(n);
-      
-      // v(S ∪ {i}) - v(S)
-      let vWithI = 0;
-      let vWithoutI = 0;
-      
-      for (let b = 0; b < nBackground; b++) {
-        const withI = buildCoalitionInput(features, background[b], S | (1 << i));
-        const withoutI = buildCoalitionInput(features, background[b], S);
-        vWithI += model.predict(withI).classProbs[classIdx];
-        vWithoutI += model.predict(withoutI).classProbs[classIdx];
-      }
-      
-      vWithI /= nBackground;
-      vWithoutI /= nBackground;
-      
-      phi[i] += weight * (vWithI - vWithoutI);
+      phiI += weights[sizeS] * (v[S | bitI] - v[S]);
     }
+    phi[i] = phiI;
   }
 
-  // Additivity check: sum(phi) + baseline should equal prediction
   const phiSum = phi.reduce((a, b) => a + b, 0);
   const additivityError = Math.abs(phiSum + baseline - prediction);
 
-  const shapley: ShapleyValue[] = phi.map((p, i) => ({
+  const shapley: ShapleyValue[] = Array.from(phi).map((p, i) => ({
     feature: THERMAL_FEATURES[i] ?? `feature_${i}`,
-    value: features[i],
+    value: rawFeatures[i],
     phi: p,
     baseline,
   }));
@@ -222,19 +486,10 @@ function factorial(n: number): number {
   return result;
 }
 
-function buildCoalitionInput(features: number[], background: number[], coalition: number): number[] {
-  const result: number[] = [];
-  for (let i = 0; i < features.length; i++) {
-    result.push((coalition & (1 << i)) ? features[i] : background[i]);
-  }
-  return result;
-}
-
 // ============================================================================
 // CASE-BASED REASONING
 // ============================================================================
 
-/** A case in the case base */
 export interface CBRCase {
   id: string;
   features: Record<string, number>;
@@ -244,9 +499,6 @@ export interface CBRCase {
   synthetic: boolean;
 }
 
-/**
- * k-NN case-based reasoning over the case base.
- */
 export function findSimilarCases(
   query: number[],
   featureNames: string[],
@@ -258,7 +510,7 @@ export function findSimilarCases(
   const scored = caseBase.map(c => {
     const caseFeatures = featureNames.map(f => c.features[f] ?? 0);
     const dist = euclideanDistance(query, caseFeatures);
-    const similarity = 1 / (1 + dist); // normalized inverse-Euclidean
+    const similarity = 1 / (1 + dist);
     return { case: c, similarity };
   });
 
@@ -283,28 +535,26 @@ function euclideanDistance(a: number[], b: number[]): number {
 }
 
 // ============================================================================
-// OOD DETECTION
+// OUT-OF-DISTRIBUTION (OOD) DETECTION
 // ============================================================================
 
-/**
- * k-NN distance OOD score against training data.
- * If score exceeds threshold, output "UNKNOWN: escalate".
- */
 export function computeOODScore(
-  query: number[],
-  trainingData: number[][],
-  k: number = 5
+  features: number[],
+  background: number[][],
+  k: number = 5,
+  model?: RandomForest
 ): { score: number; isOOD: boolean; threshold: number } {
-  const threshold = 2.0; // Configurable
-  
-  if (trainingData.length === 0) {
-    return { score: Infinity, isOOD: true, threshold };
+  const threshold = 3.5;
+  const bgData = background && background.length > 0 ? background : (model ? model.background : []);
+  if (!bgData || bgData.length === 0) {
+    return { score: 0, isOOD: false, threshold };
   }
 
-  const distances = trainingData.map(sample => euclideanDistance(query, sample));
+  const stdQuery = model ? model.standardize(features) : features;
+  const distances = bgData.map(sample => euclideanDistance(stdQuery, sample));
   distances.sort((a, b) => a - b);
-  
-  const kDistances = distances.slice(0, k);
+
+  const kDistances = distances.slice(0, Math.min(k, distances.length));
   const avgDist = kDistances.reduce((a, b) => a + b, 0) / kDistances.length;
 
   return { score: avgDist, isOOD: avgDist > threshold, threshold };
@@ -325,7 +575,6 @@ export function checkSensorHealth(
     let status: 'OK' | 'SUSPECT' | 'FAILED' = 'OK';
     let reason = 'Normal operation';
 
-    // Check for stuck sensor (constant value)
     if (hist.length >= 10) {
       const allSame = hist.slice(-10).every(v => v === value);
       if (allSame) {
@@ -334,7 +583,6 @@ export function checkSensorHealth(
       }
     }
 
-    // Check for NaN/Infinity
     if (!Number.isFinite(value)) {
       status = 'FAILED';
       reason = 'Non-finite value detected';
@@ -350,34 +598,28 @@ export function checkSensorHealth(
 // COUNTERFACTUAL SEARCH
 // ============================================================================
 
-/**
- * Search over controllable variables for counterfactual scenarios.
- * Validates by forward-simulating. Returns Pareto set with margin-to-limit.
- */
 export function searchCounterfactuals(
   currentFeatures: number[],
   model: RandomForest,
   limits: { featureIdx: number; limitValue: number }[]
 ): Counterfactual[] {
   const counterfactuals: Counterfactual[] = [];
-
-  // Grid search over controllable variables (flow setpoint, load-shed)
   const controllableIdx = [0, 5]; // flow_rate and accumulator_level
-  
+
   for (const idx of controllableIdx) {
     const original = currentFeatures[idx];
     const steps = [original * 0.5, original * 0.75, original * 1.25, original * 1.5];
-    
+
     for (const newVal of steps) {
       const modified = [...currentFeatures];
       modified[idx] = newVal;
-      
+
       const result = model.predict(modified);
       if (result.predictedClass === 'nominal' && result.confidence > 0.5) {
-        const margin = limits.length > 0 
+        const margin = limits.length > 0
           ? Math.min(...limits.map(l => Math.abs(modified[l.featureIdx] - l.limitValue)))
           : result.confidence;
-        
+
         counterfactuals.push({
           description: `Adjust ${THERMAL_FEATURES[idx]} to ${newVal.toFixed(2)}`,
           actions: [{ procedureId: 'PROC_LOOP_SWITCH', params: { [THERMAL_FEATURES[idx]]: newVal } }],
@@ -388,7 +630,6 @@ export function searchCounterfactuals(
     }
   }
 
-  // Sort by margin-to-limit (Pareto set)
   counterfactuals.sort((a, b) => b.marginToLimit - a.marginToLimit);
   return counterfactuals.slice(0, 5);
 }
@@ -397,11 +638,8 @@ export function searchCounterfactuals(
 // FULL TIER 1 DIAGNOSIS
 // ============================================================================
 
-/**
- * Run the complete Tier 1 diagnostic pipeline.
- */
 export function runTier1Diagnosis(
-  features: number[],
+  featuresInput: unknown,
   model: RandomForest,
   background: number[][],
   caseBase: CBRCase[],
@@ -409,34 +647,22 @@ export function runTier1Diagnosis(
   sensorHistory: Record<string, number[]>,
   configId: string
 ): DiagnosisObject {
-  // 1. Classify
-  const prediction = model.predict(features);
-  
-  // 2. OOD check
-  const ood = computeOODScore(features, background);
-  
-  // 3. Shapley (use first 6 features for speed if needed)
-  const shapleyFeatures = features.slice(0, Math.min(features.length, 8));
-  const shapleyBg = background.map(b => b.slice(0, Math.min(b.length, 8)));
+  const rawFeatures = featurize(featuresInput);
+  const prediction = model.predict(rawFeatures);
+  const bgData = background && background.length > 0 ? background : model.background;
+  const ood = computeOODScore(rawFeatures, bgData, 5, model);
+
   const classIdx = FAULT_CLASSES.indexOf(prediction.predictedClass);
-  const shapleyResult = computeExactShapley(model, shapleyFeatures, shapleyBg, classIdx >= 0 ? classIdx : 0);
-  
-  // 4. Similar cases
-  const featureNames = THERMAL_FEATURES.slice(0, features.length) as unknown as string[];
-  const similarCases = findSimilarCases(features, featureNames, caseBase, 3);
-  
-  // 5. Sensor health
+  const shapleyResult = computeExactShapley(model, rawFeatures, bgData, classIdx >= 0 ? classIdx : 0);
+
+  const featureNames = THERMAL_FEATURES.slice(0, rawFeatures.length) as unknown as string[];
+  const similarCases = findSimilarCases(rawFeatures, featureNames, caseBase, 3);
   const sensorHealth = checkSensorHealth(sensorValues, sensorHistory);
-  
-  // 6. Counterfactuals
-  const counterfactuals = searchCounterfactuals(features, model, [
+  const counterfactuals = searchCounterfactuals(rawFeatures, model, [
     { featureIdx: 3, limitValue: 340 }, // outlet_temp warning
   ]);
-  
-  // 7. Build input hash
-  const inputHash = features.map(f => f.toFixed(6)).join(',');
 
-  // If OOD, override class to unknown
+  const inputHash = rawFeatures.map(f => f.toFixed(6)).join(',');
   const faultClass = ood.isOOD ? 'unknown' : prediction.predictedClass;
   const confidence = ood.isOOD ? 0 : prediction.confidence;
 

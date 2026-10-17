@@ -1145,32 +1145,18 @@ function setupConsole(): void {
 
     // Feed real telemetry snapshot into AI Diagnostic & Medical models
     if (aiConsole && telemetry) {
-      const loopA = telemetry.get('thermal.loopA.flowRate')?.measured ?? 0.5;
-      const dp = telemetry.get('thermal.loopA.pumpSpeed')?.measured ?? 50;
-      const acc = telemetry.get('thermal.loopA.accumulatorLevel')?.measured ?? 2500;
-      const tout = telemetry.get('thermal.loopA.outletTemp')?.measured ?? 290;
-      const tin = telemetry.get('thermal.loopA.inletTemp')?.measured ?? 280;
-      const soc = telemetry.get('power.batterySOC')?.measured ?? 0.8;
-
-      aiConsole.diagnose(
-        [loopA, dp, acc, tout, tin, soc],
-        [
-          [0.5, 50, 2500, 290, 280, 0.8],
-          [0.48, 48, 2450, 292, 281, 0.82],
-          [0.52, 51, 2520, 289, 279, 0.79],
-        ]
-      );
+      aiConsole.diagnose(telemetry);
 
       aiConsole.assessMedical(
         {
-          spO2: telemetry.get('crew.crew1.spo2')?.measured ?? 98,
-          heartRate: telemetry.get('crew.crew1.heartRate')?.measured ?? 72,
+          spO2: telemetry.get('crew_1_spO2')?.measured ?? 98,
+          heartRate: telemetry.get('crew_1_hr')?.measured ?? 72,
           respRate: 16,
         },
         {
-          ppO2: telemetry.get('eclss.ppO2')?.measured ?? 21.3,
-          ppCO2: telemetry.get('eclss.ppCO2')?.measured ?? 0.4,
-          cabinPressure: telemetry.get('eclss.cabinPressure')?.measured ?? 101.3,
+          ppO2: telemetry.get('eclss_ppO2')?.measured ?? 21.3,
+          ppCO2: telemetry.get('eclss_ppCO2')?.measured ?? 0.4,
+          cabinPressure: telemetry.get('eclss_cabin_pressure')?.measured ?? 101.3,
         }
       );
     }

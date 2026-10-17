@@ -15,7 +15,15 @@
 
 import type { EventBus } from '../core/event-bus.js';
 import type { AegisEventMap } from '../core/types.js';
-import { RandomForest, computeExactShapley, findSimilarCases, computeOODScore, THERMAL_FEATURES } from '../ai/tier1.js';
+import {
+  RandomForest,
+  computeExactShapley,
+  findSimilarCases,
+  computeOODScore,
+  featurize,
+  FAULT_CLASSES,
+  type ShapleyValue,
+} from '../ai/tier1.js';
 import { KnowledgeGraph, BM25Retriever, renderTier2Response } from '../ai/tier2.js';
 import { runMedicalAssessment, type MedicalAssessment } from '../ai/medical.js';
 import type { SafetyGate } from '../fsw/safety-gate.js';
@@ -23,10 +31,15 @@ import type { SafetyGate } from '../fsw/safety-gate.js';
 export interface DiagnosticReport {
   predictedClass: string;
   confidence: number;
-  shapley: number[];
+  rawFeatures: number[];
+  shapley: ShapleyValue[];
+  baseline: number;
+  prediction: number;
+  additivityError: number;
   similarCases: { caseId: string; faultClass: string; outcome: string; similarity: number }[];
   isOOD: boolean;
   oodDistance: number;
+  oodThreshold: number;
 }
 
 export class AIConsole {
@@ -41,6 +54,8 @@ export class AIConsole {
 
   // Tabs
   private activeSubTab: 'TIER1' | 'TIER2' | 'MEDICAL' | 'SAFETY' = 'TIER1';
+  private explainRequested: boolean = false;
+  private currentTier1Mode: 'empty' | 'monitoring' | 'attribution' | 'invalid' = 'empty';
 
   // DOM
   private contentEl!: HTMLElement;
@@ -54,7 +69,6 @@ export class AIConsole {
 
     // Initialize AI engines
     this.rf = new RandomForest();
-    this.rf.buildSyntheticForest(25, 5, 42);
 
     this.kg = new KnowledgeGraph();
     this.retriever = new BM25Retriever();
@@ -150,10 +164,10 @@ export class AIConsole {
         }
         .shapley-bar-row {
           display: grid;
-          grid-template-columns: 110px 1fr 45px;
+          grid-template-columns: 140px 1fr 75px;
           align-items: center;
           gap: 8px;
-          height: 20px;
+          height: 24px;
           font-size: 10px;
         }
         .shapley-name {
@@ -163,17 +177,21 @@ export class AIConsole {
           text-overflow: ellipsis;
         }
         .shapley-track {
-          height: 6px;
+          height: 12px;
           background: var(--bg-canvas);
-          border: 1px solid var(--border-primary);
-          border-radius: 0px;
-          display: flex;
-          align-items: center;
+          border: 1px solid var(--border-subtle);
+          border-radius: 2px;
           position: relative;
+          overflow: hidden;
         }
-        .shapley-val-bar {
-          height: 6px;
-          border-radius: 0px;
+        .shapley-center-line {
+          position: absolute;
+          left: 50%;
+          top: 0;
+          bottom: 0;
+          width: 1px;
+          background: var(--border-primary);
+          z-index: 2;
         }
         .bar-pos { background: var(--critical-text); }
         .bar-neg { background: var(--nominal-text); }
@@ -255,7 +273,7 @@ export class AIConsole {
 
       <div class="ai-header">
         <div class="ai-title">AUTONOMOUS ADVISORY STACK</div>
-        <div class="badge phase-badge">PROPOSE-ONLY (G4)</div>
+        <div class="badge phase-badge">PROPOSE-ONLY</div>
       </div>
 
       <div class="ai-subtabs">
@@ -289,30 +307,38 @@ export class AIConsole {
   /**
    * Run diagnosis on telemetry values
    */
-  diagnose(features: number[], backgroundData: number[][]): void {
-    const rfPred = this.rf.predict(features);
-    const shap = computeExactShapley(this.rf, features.slice(0, 6), backgroundData, 0);
+  diagnose(featuresInput: unknown, backgroundData?: number[][]): void {
+    const rawFeatures = featurize(featuresInput);
+    const rfPred = this.rf.predict(rawFeatures);
+    const bg = backgroundData && backgroundData.length > 0 ? backgroundData : this.rf.background;
+    const ood = computeOODScore(rawFeatures, bg, 5, this.rf);
+
+    const classIdx = Math.max(0, FAULT_CLASSES.indexOf(rfPred.predictedClass));
+    const shap = computeExactShapley(this.rf, rawFeatures, bg, classIdx);
 
     const cbr = findSimilarCases(
-      features.slice(0, 3),
+      rawFeatures.slice(0, 3),
       ['flow_rate', 'pump_dp', 'outlet_temp'],
       [
-        { id: 'case-041', features: { flow_rate: 0.15, pump_dp: 18, outlet_temp: 345 }, faultClass: 'pump_failure', outcome: 'Executed Loop B failover. Temperature stabilized in 3.2m.', timestamp: 1000, synthetic: true },
-        { id: 'case-088', features: { flow_rate: 0.48, pump_dp: 52, outlet_temp: 292 }, faultClass: 'nominal', outcome: 'Nominal cruise operations maintained.', timestamp: 2000, synthetic: true },
-        { id: 'case-112', features: { flow_rate: 0.28, pump_dp: 35, outlet_temp: 315 }, faultClass: 'leak', outcome: 'Isolated secondary loop. Pressurized accumulator.', timestamp: 3000, synthetic: true },
+        { id: 'case-041', features: { flow_rate: 0.15, pump_dp: 77.5, outlet_temp: 312 }, faultClass: 'pump_failure', outcome: 'Executed Loop B failover. Temperature stabilized in 3.2m.', timestamp: 1000, synthetic: true },
+        { id: 'case-088', features: { flow_rate: 0.45, pump_dp: 155.0, outlet_temp: 292.5 }, faultClass: 'nominal', outcome: 'Nominal cruise operations maintained.', timestamp: 2000, synthetic: true },
+        { id: 'case-112', features: { flow_rate: 0.45, pump_dp: 155.0, outlet_temp: 292.5 }, faultClass: 'leak', outcome: 'Isolated secondary loop. Pressurized accumulator.', timestamp: 3000, synthetic: true },
       ],
       2
     );
 
-    const ood = computeOODScore(features.slice(0, 4), backgroundData.map(b => b.slice(0, 4)));
-
     this.latestDiagnostic = {
-      predictedClass: rfPred.predictedClass,
-      confidence: rfPred.confidence,
-      shapley: shap.shapley.map(s => s.value),
+      predictedClass: ood.isOOD ? 'unknown' : rfPred.predictedClass,
+      confidence: ood.isOOD ? 0 : rfPred.confidence,
+      rawFeatures,
+      shapley: shap.shapley,
+      baseline: shap.baseline,
+      prediction: shap.prediction,
+      additivityError: shap.additivityError,
       similarCases: cbr,
       isOOD: ood.isOOD,
       oodDistance: ood.score,
+      oodThreshold: ood.threshold,
     };
 
     if (this.activeSubTab === 'TIER1') {
@@ -339,59 +365,173 @@ export class AIConsole {
     }
   }
 
-  private _renderTier1(): void {
+  private _renderTier1(forceRebuild = false): void {
     if (!this.latestDiagnostic) {
       this.contentEl.innerHTML = `
         <div style="text-align: center; color: var(--text-muted); padding: 20px;">
           AWAITING TELEMETRY SAMPLING...
         </div>
       `;
+      this.currentTier1Mode = 'empty';
       return;
     }
 
     const d = this.latestDiagnostic;
-    const isFault = d.predictedClass !== 'nominal';
+    const isFault = d.predictedClass !== 'nominal' || d.isOOD;
+    const showAttribution = isFault || this.explainRequested;
+    const targetMode = !showAttribution ? 'monitoring' : (d.additivityError > 1e-6 ? 'invalid' : 'attribution');
+
+    // In-place dynamic update if DOM structure is already established
+    if (!forceRebuild && this.currentTier1Mode === targetMode) {
+      const inferBadge = this.contentEl.querySelector('#diag-infer-badge');
+      if (inferBadge) {
+        inferBadge.textContent = `${d.predictedClass.toUpperCase()} (${(d.confidence * 100).toFixed(1)}%)`;
+        inferBadge.setAttribute('style', `background: ${isFault ? 'var(--critical-bg)' : 'var(--nominal-bg)'}; color: ${isFault ? 'var(--critical-text)' : 'var(--nominal-text)'}; border: 1px solid ${isFault ? 'var(--critical-border)' : 'var(--nominal-border)'};`);
+      }
+      const oodEl = this.contentEl.querySelector('#diag-ood-val');
+      if (oodEl) {
+        oodEl.textContent = `${d.isOOD ? 'OUT-OF-DISTRIBUTION' : 'IN-DISTRIBUTION'} (dist: ${d.oodDistance.toFixed(2)})`;
+        oodEl.setAttribute('style', `color: ${d.isOOD ? 'var(--caution-text)' : 'var(--nominal-text)'}; font-weight: 600;`);
+      }
+      if (targetMode === 'monitoring') {
+        const monConf = this.contentEl.querySelector('#diag-mon-conf');
+        if (monConf) monConf.textContent = `NOMINAL (${(d.confidence * 100).toFixed(1)}%)`;
+        const monOod = this.contentEl.querySelector('#diag-mon-ood');
+        if (monOod) monOod.textContent = d.oodDistance.toFixed(2);
+      }
+      return;
+    }
+
+    this.currentTier1Mode = targetMode;
+
+    const formatRaw = (feat: string, val: number): string => {
+      switch (feat) {
+        case 'flow_rate': return `${val.toFixed(3)} kg/s`;
+        case 'pump_dp': return `${val.toFixed(1)} kPa`;
+        case 'pump_rpm': return `${Math.round(val)} RPM`;
+        case 'outlet_temp': return `${val.toFixed(1)} K`;
+        case 'inlet_temp': return `${val.toFixed(1)} K`;
+        case 'accumulator_level': return `${(val * 100).toFixed(1)}%`;
+        default: return val.toFixed(2);
+      }
+    };
+
+    let attributionContent = '';
+    if (showAttribution) {
+      if (d.additivityError > 1e-6) {
+        attributionContent = `
+          <div class="ai-card">
+            <div class="ai-card-title">EXACT SHAPLEY ATTRIBUTION (2ⁿ COALITIONS)</div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px;">
+              <span class="badge" style="background: var(--critical-bg); color: var(--critical-text); border: 1px solid var(--critical-border); font-weight: 700;">
+                ATTRIBUTION INVALID
+              </span>
+              <span style="font-size: 10px; color: var(--text-muted);">
+                Additivity residual (${d.additivityError.toExponential(2)}) exceeds 1e-6 tolerance.
+              </span>
+            </div>
+          </div>
+        `;
+      } else {
+        const sortedShapley = [...d.shapley].sort((a, b) => Math.abs(b.phi) - Math.abs(a.phi));
+        const maxAbsPhi = Math.max(0.05, ...sortedShapley.map(s => Math.abs(s.phi)));
+
+        attributionContent = `
+          <div class="ai-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;" class="ai-card-title">
+              <span>EXACT SHAPLEY ATTRIBUTION (2ⁿ COALITIONS)</span>
+              ${this.explainRequested && !isFault ? `
+                <button id="btn-collapse-explain" class="search-btn" style="padding: 2px 6px; font-size: 9px;">
+                  COLLAPSE
+                </button>
+              ` : ''}
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--text-muted); padding: 2px 0;">
+              <span>TARGET: <strong style="color: var(--text-primary);">${d.predictedClass.toUpperCase()}</strong> (f(x) = <span class="tabular-nums" style="color: var(--control-text); font-weight: 600;">${d.prediction.toFixed(3)}</span>)</span>
+              <span>BASELINE: E[f(x)] = <span class="tabular-nums" style="color: var(--text-secondary); font-weight: 600;">${d.baseline.toFixed(3)}</span></span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); padding: 2px 80px 2px 145px; border-bottom: 1px solid var(--border-subtle);">
+              <span>← DECREASES P(${d.predictedClass.toUpperCase()})</span>
+              <span>0.0</span>
+              <span>INCREASES P(${d.predictedClass.toUpperCase()}) →</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+              ${sortedShapley.map((s: ShapleyValue) => {
+                const widthPct = Math.min(50, (Math.abs(s.phi) / maxAbsPhi) * 50);
+                const isPos = s.phi >= 0;
+                const signStr = isPos ? `+${s.phi.toFixed(3)} [▲]` : `${s.phi.toFixed(3)} [▼]`;
+                const rawStr = formatRaw(s.feature, s.value);
+
+                return `
+                  <div class="shapley-bar-row">
+                    <div style="display: flex; flex-direction: column; overflow: hidden;">
+                      <span class="shapley-name" title="${s.feature}">${s.feature}</span>
+                      <span style="font-size: 9px; color: var(--text-muted); font-variant-numeric: tabular-nums;">(raw: ${rawStr})</span>
+                    </div>
+                    <div class="shapley-track">
+                      <div class="shapley-center-line"></div>
+                      ${isPos ? `
+                        <div style="position: absolute; left: 50%; top: 1px; bottom: 1px; width: ${widthPct}%; background: var(--critical-text); border-radius: 1px;"></div>
+                      ` : `
+                        <div style="position: absolute; right: 50%; top: 1px; bottom: 1px; width: ${widthPct}%; background: var(--nominal-text); border-radius: 1px;"></div>
+                      `}
+                    </div>
+                    <div style="text-align: right; font-size: 10px; font-variant-numeric: tabular-nums; font-weight: 600; color: ${isPos ? 'var(--critical-text)' : 'var(--nominal-text)'};">
+                      ${signStr}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+    } else {
+      attributionContent = `
+        <div class="ai-card" style="border-left: 2px solid var(--nominal-text);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 600; color: var(--nominal-text); display: flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--nominal-text);"></span>
+              No active fault. Monitoring
+            </span>
+            <span id="diag-mon-conf" class="badge" style="background: var(--nominal-bg); color: var(--nominal-text); border: 1px solid var(--nominal-border);">
+              NOMINAL (${(d.confidence * 100).toFixed(1)}%)
+            </span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 6px;">
+            <span>Anomaly Score (OOD Dist): <span id="diag-mon-ood" class="tabular-nums" style="color: var(--text-primary); font-weight: 600;">${d.oodDistance.toFixed(2)}</span> / threshold ${d.oodThreshold.toFixed(1)}</span>
+            <span style="color: var(--nominal-text); font-weight: 600;">IN-DISTRIBUTION</span>
+          </div>
+          <div style="margin-top: 8px;">
+            <button id="explain-state-btn" class="search-btn" style="width: 100%; padding: 5px 8px; font-size: 10px; font-weight: 600;">
+              EXPLAIN CURRENT STATE
+            </button>
+          </div>
+        </div>
+      `;
+    }
 
     this.contentEl.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 8px;">
         <div class="ai-card">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">CLASSIFIER INFERENCE</span>
-            <span class="badge" style="background: ${isFault ? 'var(--critical-bg)' : 'var(--nominal-bg)'}; color: ${isFault ? 'var(--critical-text)' : 'var(--nominal-text)'}; border: 1px solid ${isFault ? 'var(--critical-border)' : 'var(--nominal-border)'};">
+            <span id="diag-infer-badge" class="badge" style="background: ${isFault ? 'var(--critical-bg)' : 'var(--nominal-bg)'}; color: ${isFault ? 'var(--critical-text)' : 'var(--nominal-text)'}; border: 1px solid ${isFault ? 'var(--critical-border)' : 'var(--nominal-border)'};">
               ${d.predictedClass.toUpperCase()} (${(d.confidence * 100).toFixed(1)}%)
             </span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px;">
             <span style="color: var(--text-muted);">NOVELTY (OOD):</span>
-            <span style="color: ${d.isOOD ? 'var(--caution-text)' : 'var(--nominal-text)'}; font-weight: 600;">
+            <span id="diag-ood-val" style="color: ${d.isOOD ? 'var(--caution-text)' : 'var(--nominal-text)'}; font-weight: 600;">
               ${d.isOOD ? 'OUT-OF-DISTRIBUTION' : 'IN-DISTRIBUTION'} (dist: ${d.oodDistance.toFixed(2)})
             </span>
           </div>
         </div>
 
-        <div class="ai-card">
-          <div class="ai-card-title">
-            EXACT SHAPLEY ATTRIBUTION (2ⁿ COALITIONS)
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 2px;">
-            ${d.shapley.map((val: number, idx: number) => {
-              const name = THERMAL_FEATURES[idx] || `feature_${idx}`;
-              const pct = Math.min(100, Math.abs(val) * 200);
-              const isPos = val >= 0;
-              return `
-                <div class="shapley-bar-row">
-                  <div class="shapley-name" title="${name}">${name}</div>
-                  <div class="shapley-track">
-                    <div class="shapley-val-bar ${isPos ? 'bar-pos' : 'bar-neg'}" style="width: ${pct}%;"></div>
-                  </div>
-                  <div style="text-align: right; font-size: 10px; font-variant-numeric: tabular-nums; font-weight: 600; color: ${isPos ? 'var(--critical-text)' : 'var(--nominal-text)'};">
-                    ${isPos ? '+' : ''}${val.toFixed(3)}
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
+        ${attributionContent}
 
         <div class="ai-card">
           <div class="ai-card-title">
@@ -409,6 +549,23 @@ export class AIConsole {
         </div>
       </div>
     `;
+
+    // Wire up explain / collapse buttons
+    const explainBtn = this.contentEl.querySelector('#explain-state-btn');
+    if (explainBtn) {
+      explainBtn.addEventListener('click', () => {
+        this.explainRequested = true;
+        this._renderTier1(true);
+      });
+    }
+
+    const collapseBtn = this.contentEl.querySelector('#btn-collapse-explain');
+    if (collapseBtn) {
+      collapseBtn.addEventListener('click', () => {
+        this.explainRequested = false;
+        this._renderTier1(true);
+      });
+    }
   }
 
   private _renderTier2(): void {

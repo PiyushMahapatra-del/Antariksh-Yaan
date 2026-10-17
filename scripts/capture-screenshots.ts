@@ -3,11 +3,12 @@ import { preview } from 'vite';
 
 async function main() {
   const prefix = process.argv[2] || 'screenshot';
-  console.log(`Starting preview server...`);
+  console.log(`Starting preview server on random port...`);
   const server = await preview({
-    preview: { port: 4173 },
+    preview: { port: 0 },
   });
-  const port = server.httpServer.address()?.['port'] || 4173;
+  const address = server.httpServer.address();
+  const port = typeof address === 'object' && address ? address.port : 4173;
   const baseUrl = `http://localhost:${port}`;
   console.log(`Preview server running at ${baseUrl}`);
 
@@ -21,9 +22,24 @@ async function main() {
 
   for (const vp of viewports) {
     const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
-    await page.goto(baseUrl, { waitUntil: 'networkidle' });
-    // Allow simulation to settle for 1s
+    await page.goto(baseUrl, { waitUntil: 'load' });
     await page.waitForTimeout(1000);
+
+    if (prefix.includes('ai') || prefix.includes('diagnostics') || prefix.includes('shapley')) {
+      try {
+        await page.click('.rail-btn[data-tab="AI"]');
+        await page.waitForTimeout(300);
+        await page.keyboard.press('Space');
+        await page.waitForTimeout(300);
+        if (prefix.includes('shapley') || prefix.includes('explain')) {
+          await page.click('#explain-state-btn');
+          await page.waitForTimeout(500);
+        }
+      } catch (e) {
+        console.log('Interaction note:', (e as Error).message);
+      }
+    }
+
     const filename = `docs/screenshots/${prefix}-${vp.name}.png`;
     await page.screenshot({ path: filename });
     console.log(`Captured ${filename}`);
