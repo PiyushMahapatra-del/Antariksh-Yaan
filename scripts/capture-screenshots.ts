@@ -53,6 +53,13 @@ async function main() {
       } catch (e) {
         console.log('Interaction note:', (e as Error).message);
       }
+    } else if (prefix.includes('mem') || prefix.includes('dynamic') || prefix.includes('env')) {
+      try {
+        await page.click('.rail-btn[data-tab="MEM"]');
+        await page.waitForTimeout(1000);
+      } catch (e) {
+        console.log('Interaction note:', (e as Error).message);
+      }
     }
 
     const filename = `docs/screenshots/${prefix}-${vp.name}.png`;

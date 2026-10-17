@@ -85,3 +85,27 @@ This document records all bug fixes, root causes, and regression test verificati
     5. Proved all `ScenarioDefinition` objects contain zero forbidden tokens.
   - Captured Playwright screenshots at 1280x720, 1440x900, 1920x1080.
 
+---
+
+## Dynamic Situational Memory & Vite Import Resolution Fix
+
+- **Symptom**: Application displayed a Vite error overlay on launch:
+  `[plugin:vite:import-analysis] Failed to resolve import "../fsw/environment-manager.js" from "src/ui/memory-view.ts". Does the file exist?`
+- **Root Cause**: `src/ui/memory-view.ts` was refactored to support the Dynamic Situational Memory system and imported `EnvironmentManager` from `../fsw/environment-manager.js`. However, `src/fsw/environment-manager.ts` had not yet been created in `src/fsw/`, causing Vite's import analysis plugin to fail during module graph resolution.
+- **Fix**:
+  1. Created `src/fsw/environment-profiles.ts` defining the 5 spacecraft environments (`EarthOrbit`, `LunarOrbit`, `InterplanetaryCruise`, `MarsOrbit`, `MarsSurface`), environmental measurements, adaptive configurations, immutable permanent memory regions (`R0: GOLDEN ROM`, `R1: PROTECTED RECOVERY DATA`), deterministic FNV-1a checksums, and `computeDiff()`.
+  2. Created `src/fsw/environment-manager.ts` implementing `EnvironmentManager`:
+     - Asynchronous and synchronous environment transitions with verifiable progress steps (`CAPTURING` → `VERIFYING` → `CHECKING_INTEGRITY` → `VALIDATING` → `ACTIVATING` → `UPDATING` → `RECORDING` → `COMPLETE`).
+     - Physical parameter bounds validation.
+     - Permanent memory integrity verification (100% write-protected and immutable).
+     - Dedicated simulated test buffer for SEU / bit-flip fault testing without modifying permanent data.
+     - Persistent audit log with timestamped entries.
+  3. Cleaned up unused imports and added getter in `src/ui/memory-view.ts` and `src/fsw/environment-manager.ts` to satisfy strict TypeScript `noUnusedLocals` compiler options.
+  4. Created unit test suite `src/fsw/environment-manager.test.ts` covering Tests A through F.
+- **Test**:
+  - `src/fsw/environment-manager.test.ts`: 8/8 tests passed verifying Earth-to-Mars transition, Mars-to-Earth return, all 5 environments, rejection of invalid transitions, bit-flip isolation to test buffer, and reset repeatability.
+  - Full test suite: 21 test files, 206/206 tests passed.
+  - TypeScript: `npx tsc --noEmit` passed with 0 errors.
+  - Production build: `npm run build` completed successfully, producing optimized bundles without warning or error.
+  - Browser verification: Captured Playwright screenshots at 1280x720, 1440x900, and 1920x1080 with Vite preview server confirming clean UI load, zero console errors, and full rendering of the Dynamic Situational Memory console.
+

@@ -19,3 +19,9 @@ export type { DegradationLevel, LogEntry, ProcedureStep, ProcedureDef, Procedure
 
 export { MemoryManager } from './memory-manager.js';
 export type { MemoryRegion, MemoryModule, ResidencySet, SwapResult, SEUResult } from './memory-manager.js';
+
+export { EnvironmentManager } from './environment-manager.js';
+export type { AuditLogEntry, TransitionResult, TransitionStep, DemoState } from './environment-manager.js';
+
+export { ENVIRONMENT_PROFILES, PERMANENT_MEMORY, computeProfileChecksum, computeDiff, getAllEnvironments, getEnvironmentDisplayName } from './environment-profiles.js';
+export type { SpacecraftEnvironment, EnvironmentProfile, EnvironmentMeasurements, AdaptiveConfiguration, PermanentMemoryRegion } from './environment-profiles.js';
