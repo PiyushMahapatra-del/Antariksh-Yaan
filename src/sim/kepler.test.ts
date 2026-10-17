@@ -27,8 +27,8 @@ describe('Kepler Solver & Anomalies', () => {
 
     // Another known point: E = 2.0 rad
     const knownE2 = 2.0;
-    const M2 = knownE2 - e * Math.sin(knownE2);
-    expect(solveKepler(M2, e)).toBeCloseTo(knownE2, 10);
+    const meanAnomaly2 = knownE2 - e * Math.sin(knownE2);
+    expect(solveKepler(meanAnomaly2, e)).toBeCloseTo(knownE2, 10);
   });
 
   it('Mars eccentricity (e ≈ 0.0934): solve and verify radius at perihelion and aphelion', () => {

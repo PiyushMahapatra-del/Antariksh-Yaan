@@ -282,11 +282,11 @@ export class ScenarioRunner {
       </div>
 
       <div class="scen-selector">
-        <button class="scen-btn active" data-idx="0">S1: LATENCY</button>
-        <button class="scen-btn" data-idx="1">S2: BLACKOUT</button>
-        <button class="scen-btn" data-idx="2">S3: ANOMALY</button>
-        <button class="scen-btn" data-idx="3">S4: MEDICAL</button>
-        <button class="scen-btn" data-idx="4">S5: MOI CAPTURE</button>
+        <button class="scen-btn active" data-idx="0">Latency</button>
+        <button class="scen-btn" data-idx="1">Blackout</button>
+        <button class="scen-btn" data-idx="2">Anomaly</button>
+        <button class="scen-btn" data-idx="3">Medical</button>
+        <button class="scen-btn" data-idx="4">Capture</button>
       </div>
 
       <div class="scen-card">

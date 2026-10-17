@@ -27,7 +27,7 @@ export type MissionPhase =
   | 'EarthEntry';
 
 /**
- * Subsystem fidelity level for G2 compliance.
+ * Subsystem fidelity level for engineering compliance.
  * - HIGH: Physics-derived numerical integration / real differential equations
  * - MEDIUM: Parametric / empirical model
  * - SCRIPTED: Sequence or table driven
@@ -195,7 +195,7 @@ export interface DtnBundle {
 
 /**
  * AI tier diagnostic or action proposal.
- * Per G2 / safety architecture: AI tier can ONLY PROPOSE, never actuate directly.
+ * Per safety architecture: AI tier can ONLY PROPOSE, never actuate directly.
  */
 export interface AiProposal {
   proposalId: string;

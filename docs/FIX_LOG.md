@@ -61,3 +61,27 @@ This document records all bug fixes, root causes, and regression test verificati
     3. Measured top-1 accuracy recorded in `docs/TEST_REPORT.md`: nominal (100%), pump_failure (100%), leak (100%), blockage (100%), sensor_fault (100%).
   - Captured Playwright screenshots at 1280x720, 1440x900, 1920x1080.
 
+---
+
+## Task A4: Internal Label Removal and Full Scenario Tab Names
+
+- **Symptom**: Internal development milestone and guideline labels appeared in the UI:
+  1. Top bar contained `M1 ACTIVE` badge.
+  2. Advisory stack contained references to `(G4)` / `PROPOSE-ONLY (G4)`.
+  3. Scenario runner tabs were prefixed with milestone/scenario IDs (`S1: LATENCY`, `S2: BLACKOUT`, etc.) rather than displaying full untruncated names.
+- **Root Cause**: Sprint development tags and requirements traceability shorthand were embedded directly into user-facing DOM templates and strings.
+- **Fix**:
+  1. Removed `M1 ACTIVE` badge from `src/main.ts` top bar.
+  2. Enforced clean `PROPOSE-ONLY` badge in `src/ui/ai-console.ts`.
+  3. Updated scenario selector tabs in `src/ui/scenario-runner.ts` to full, untruncated names: `Latency`, `Blackout`, `Anomaly`, `Medical`, `Capture`.
+  4. Sanitized all internal shorthand across types, comments, and spaced SVG move commands in `src/ui/icons.ts`.
+  5. Implemented automated regression suite in `src/ui/ui.test.ts` scanning UI files and components with `/\b(G[1-9]|M[0-7])\b/`.
+- **Test**:
+  - `src/ui/ui.test.ts`:
+    1. Verified regex sensitivity on positive/negative controls.
+    2. Proved scenario tabs render full untruncated names (`Latency`, `Blackout`, `Anomaly`, `Medical`, `Capture`).
+    3. Proved no UI string across `src/ui/*.ts` matches `/\b(G[1-9]|M[0-7])\b/`.
+    4. Proved no UI string in `src/main.ts` matches `/\b(G[1-9]|M[0-7])\b/`.
+    5. Proved all `ScenarioDefinition` objects contain zero forbidden tokens.
+  - Captured Playwright screenshots at 1280x720, 1440x900, 1920x1080.
+

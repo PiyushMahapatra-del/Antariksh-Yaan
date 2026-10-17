@@ -38,6 +38,13 @@ async function main() {
       } catch (e) {
         console.log('Interaction note:', (e as Error).message);
       }
+    } else if (prefix.includes('a4') || prefix.includes('scen') || prefix.includes('clean-labels')) {
+      try {
+        await page.click('.rail-btn[data-tab="SCENARIOS"]');
+        await page.waitForTimeout(500);
+      } catch (e) {
+        console.log('Interaction note:', (e as Error).message);
+      }
     }
 
     const filename = `docs/screenshots/${prefix}-${vp.name}.png`;

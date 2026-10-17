@@ -49,8 +49,8 @@ Exit Code: 0 (Clean production bundle generated in dist/)
 | **M4** | Tier 0 Flight Software & Safety Gate | `fsw.test.ts` | 29 | 29 | 0 | 100% | `VERIFIED` |
 | **M5** | AI Autonomy & Diagnostics Stack | `ai.test.ts` | 23 | 23 | 0 | 100% | `VERIFIED` |
 | **M6** | DTN & Deep-Space Data Transfer | `dtn.test.ts` | 13 | 13 | 0 | 100% | `VERIFIED` |
-| **M7** | Integration, Offline Scripts & Scenarios | In-browser Verification & Eval Suite | End-to-End | 5 Scenarios | 0 | 100% | `VERIFIED` |
-| **TOTAL** | **Full Mission Test Suite** | **18 Files** | **190 Tests** | **190** | **0** | **100%** | **PASS** |
+| **M7** | Integration, UI Hygiene & Scenarios | `ui.test.ts`, In-browser Eval Suite | 5 | 5 | 0 | 100% | `VERIFIED` |
+| **TOTAL** | **Full Mission Test Suite** | **19 Files** | **195 Tests** | **195** | **0** | **100%** | **PASS** |
 
 ---
 

@@ -3,8 +3,8 @@
  * 
  * SIMULATION: NOT FLIGHT SOFTWARE
  * TRAINED ON SYNTHETIC DATA
- * G4 Enforced: Advisory Only — Proposals must pass Tier 0 Safety Gate
- * G5 Enforced: NOT MEDICAL ADVICE banner
+ * Advisory Only — Proposals must pass Tier 0 Safety Gate
+ * NOT MEDICAL ADVICE banner
  * 
  * Features:
  * - Tier 1: Random Forest Diagnostics + Exact Shapley Attribution Bars (6px sharp) + CBR + OOD

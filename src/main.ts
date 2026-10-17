@@ -2,7 +2,7 @@
  * AEGIS TRANSIT — Mission Console Main Entry Point
  * 
  * SIMULATION: NOT FLIGHT SOFTWARE
- * M1 Implementation: Simulation Clock, Astrodynamic Trajectory Manager,
+ * Integrated Mission Control: Simulation Clock, Astrodynamic Trajectory Manager,
  * Ephemerides, Deep Space Comms State, and Top Bar / Telemetry HUD.
  */
 
@@ -535,7 +535,6 @@ function setupConsole(): void {
           <span class="mission-title">AEGIS TRANSIT</span>
         </div>
         <span id="phase-badge" class="badge phase-badge">${simLoop.trajectory.shipState.phase.toUpperCase()}</span>
-        <span class="badge fidelity-high">M1 ACTIVE</span>
         <span class="badge synthetic-banner">SYNTHETIC</span>
       </div>
       <div class="topbar-center">
