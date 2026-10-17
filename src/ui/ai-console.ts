@@ -7,7 +7,7 @@
  * G5 Enforced: NOT MEDICAL ADVICE banner
  * 
  * Features:
- * - Tier 1: Random Forest Diagnostics + Exact Shapley Attribution Bars + CBR + OOD
+ * - Tier 1: Random Forest Diagnostics + Exact Shapley Attribution Bars (6px sharp) + CBR + OOD
  * - Tier 2: Grounded Knowledge Graph & BM25 Procedure Search with Citations
  * - Medical CDSS: Decision Tree Walkthrough + Naive Bayes Differential + Synthetic Formulary
  * - Safety Gate Two-Stage Arm & Execute Panel
@@ -74,93 +74,120 @@ export class AIConsole {
           display: flex;
           flex-direction: column;
           gap: 10px;
-          padding: 12px;
+          padding: 10px;
           height: 100%;
           overflow-y: auto;
           font-family: var(--font-mono);
           font-size: 11px;
           color: var(--text-primary);
-          background: rgba(10, 16, 26, 0.95);
+          background: var(--bg-panel);
         }
         .ai-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+          border-bottom: 1px solid var(--border-primary);
           padding-bottom: 6px;
         }
         .ai-title {
-          font-size: 13px;
+          font-family: var(--font-sans);
+          font-size: 11px;
           font-weight: 700;
-          color: var(--cyan);
-          letter-spacing: 1px;
+          color: var(--text-secondary);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
         }
         .ai-subtabs {
           display: flex;
-          gap: 4px;
-          background: rgba(0, 0, 0, 0.5);
+          gap: 3px;
+          background: var(--bg-card);
           padding: 3px;
           border-radius: 4px;
+          border: 1px solid var(--border-primary);
         }
         .ai-tab-btn {
           flex: 1;
-          padding: 5px 8px;
+          padding: 4px 6px;
           background: transparent;
           border: 1px solid transparent;
-          color: var(--text-dim);
+          color: var(--text-muted);
           font-family: var(--font-mono);
           font-size: 10px;
-          font-weight: 700;
+          font-weight: 600;
           cursor: pointer;
-          border-radius: 3px;
+          border-radius: 2px;
           text-align: center;
-          transition: all 0.2s ease;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+        }
+        .ai-tab-btn:hover {
+          color: var(--text-primary);
         }
         .ai-tab-btn.active {
-          background: rgba(0, 229, 255, 0.15);
-          border-color: var(--cyan);
-          color: var(--cyan);
-          text-shadow: var(--glow-cyan);
+          background: var(--control-bg);
+          border-color: var(--control-border);
+          color: var(--control-text);
+          font-weight: 700;
+        }
+        .ai-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border-primary);
+          border-radius: 4px;
+          padding: 8px 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .ai-card-title {
+          font-family: var(--font-sans);
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--text-secondary);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          border-bottom: 1px solid var(--border-subtle);
+          padding-bottom: 4px;
         }
         .shapley-bar-row {
-          display: flex;
+          display: grid;
+          grid-template-columns: 110px 1fr 45px;
           align-items: center;
-          gap: 6px;
-          margin: 4px 0;
+          gap: 8px;
+          height: 20px;
           font-size: 10px;
         }
         .shapley-name {
-          width: 110px;
+          color: var(--text-secondary);
+          white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          white-space: nowrap;
-          color: var(--text-dim);
         }
         .shapley-track {
-          flex: 1;
-          height: 8px;
-          background: rgba(255, 255, 255, 0.08);
-          border-radius: 4px;
+          height: 6px;
+          background: var(--bg-canvas);
+          border: 1px solid var(--border-primary);
+          border-radius: 0px;
           display: flex;
           align-items: center;
           position: relative;
         }
         .shapley-val-bar {
-          height: 100%;
-          border-radius: 4px;
+          height: 6px;
+          border-radius: 0px;
         }
-        .bar-pos { background: var(--red); }
-        .bar-neg { background: var(--green); }
+        .bar-pos { background: var(--critical-text); }
+        .bar-neg { background: var(--nominal-text); }
         .medical-banner {
-          background: rgba(255, 82, 82, 0.12);
-          border: 1px solid var(--red);
+          background: var(--caution-bg);
+          border: 1px solid var(--caution-border);
           border-radius: 4px;
           padding: 6px 10px;
-          color: #ff8a80;
-          font-weight: 700;
+          color: var(--caution-text);
+          font-family: var(--font-mono);
+          font-weight: 600;
           font-size: 10px;
           text-align: center;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.04em;
         }
         .search-box {
           display: flex;
@@ -169,57 +196,60 @@ export class AIConsole {
         }
         .search-input {
           flex: 1;
-          background: #000;
-          border: 1px solid rgba(0, 229, 255, 0.3);
-          border-radius: 3px;
-          color: #fff;
+          background: var(--bg-canvas);
+          border: 1px solid var(--border-primary);
+          border-radius: 2px;
+          color: var(--text-primary);
           font-family: var(--font-mono);
-          padding: 5px 8px;
+          padding: 4px 8px;
           font-size: 11px;
         }
-        .search-btn {
-          background: rgba(0, 229, 255, 0.2);
-          border: 1px solid var(--cyan);
-          color: var(--cyan);
-          font-family: var(--font-mono);
-          padding: 5px 12px;
-          cursor: pointer;
-          border-radius: 3px;
-          font-weight: 700;
+        .search-input:focus {
+          border-color: var(--control-text);
+          outline: none;
         }
-        .action-card {
-          background: rgba(0, 0, 0, 0.4);
-          border: 1px solid rgba(0, 229, 255, 0.2);
-          border-radius: 4px;
-          padding: 10px;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
+        .search-btn {
+          background: var(--bg-card);
+          border: 1px solid var(--border-primary);
+          color: var(--control-text);
+          font-family: var(--font-mono);
+          padding: 4px 10px;
+          cursor: pointer;
+          border-radius: 2px;
+          font-weight: 600;
+          transition: all 0.15s ease;
+        }
+        .search-btn:hover {
+          background: var(--control-bg);
+          border-color: var(--control-border);
         }
         .arm-btn {
-          background: rgba(255, 171, 0, 0.2);
-          border: 1px solid var(--amber);
-          color: var(--amber);
+          background: var(--caution-bg);
+          border: 1px solid var(--caution-border);
+          color: var(--caution-text);
           font-family: var(--font-mono);
-          padding: 6px 12px;
-          font-weight: 700;
+          padding: 4px 10px;
+          font-weight: 600;
           cursor: pointer;
-          border-radius: 3px;
+          border-radius: 2px;
+          transition: all 0.15s ease;
+        }
+        .arm-btn:hover {
+          background: rgba(245, 158, 11, 0.25);
         }
         .exec-btn {
-          background: rgba(255, 23, 68, 0.3);
-          border: 1px solid var(--red);
-          color: #fff;
+          background: var(--critical-bg);
+          border: 1px solid var(--critical-border);
+          color: var(--critical-text);
           font-family: var(--font-mono);
-          padding: 6px 12px;
-          font-weight: 800;
+          padding: 4px 10px;
+          font-weight: 700;
           cursor: pointer;
-          border-radius: 3px;
-          animation: pulse 1s infinite alternate;
+          border-radius: 2px;
+          transition: all 0.15s ease;
         }
-        @keyframes pulse {
-          from { box-shadow: 0 0 5px rgba(255, 23, 68, 0.5); }
-          to { box-shadow: 0 0 15px rgba(255, 23, 68, 0.9); }
+        .exec-btn:hover {
+          background: rgba(239, 68, 68, 0.25);
         }
       </style>
 
@@ -312,7 +342,7 @@ export class AIConsole {
   private _renderTier1(): void {
     if (!this.latestDiagnostic) {
       this.contentEl.innerHTML = `
-        <div style="text-align: center; color: var(--text-dim); padding: 20px;">
+        <div style="text-align: center; color: var(--text-muted); padding: 20px;">
           AWAITING TELEMETRY SAMPLING...
         </div>
       `;
@@ -323,55 +353,57 @@ export class AIConsole {
     const isFault = d.predictedClass !== 'nominal';
 
     this.contentEl.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(0,229,255,0.2); border-radius: 4px; padding: 8px;">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div class="ai-card">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 10px; color: var(--text-dim);">CLASSIFIER INFERENCE</span>
-            <span class="badge" style="background: ${isFault ? 'var(--red)' : 'var(--green)'}; color: #fff;">
+            <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">CLASSIFIER INFERENCE</span>
+            <span class="badge" style="background: ${isFault ? 'var(--critical-bg)' : 'var(--nominal-bg)'}; color: ${isFault ? 'var(--critical-text)' : 'var(--nominal-text)'}; border: 1px solid ${isFault ? 'var(--critical-border)' : 'var(--nominal-border)'};">
               ${d.predictedClass.toUpperCase()} (${(d.confidence * 100).toFixed(1)}%)
             </span>
           </div>
-          <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px;">
-            <span style="color: var(--text-dim);">NOVELTY (OOD):</span>
-            <span style="color: ${d.isOOD ? 'var(--amber)' : 'var(--green)'};">
-              ${d.isOOD ? '⚠ OUT-OF-DISTRIBUTION' : 'IN-DISTRIBUTION'} (dist: ${d.oodDistance.toFixed(2)})
+          <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px;">
+            <span style="color: var(--text-muted);">NOVELTY (OOD):</span>
+            <span style="color: ${d.isOOD ? 'var(--caution-text)' : 'var(--nominal-text)'}; font-weight: 600;">
+              ${d.isOOD ? 'OUT-OF-DISTRIBUTION' : 'IN-DISTRIBUTION'} (dist: ${d.oodDistance.toFixed(2)})
             </span>
           </div>
         </div>
 
-        <div>
-          <div style="font-size: 10px; font-weight: 700; color: var(--cyan); margin-bottom: 4px;">
+        <div class="ai-card">
+          <div class="ai-card-title">
             EXACT SHAPLEY ATTRIBUTION (2ⁿ COALITIONS)
           </div>
-          ${d.shapley.map((val: number, idx: number) => {
-            const name = THERMAL_FEATURES[idx] || `feature_${idx}`;
-            const pct = Math.min(100, Math.abs(val) * 200);
-            const isPos = val >= 0;
-            return `
-              <div class="shapley-bar-row">
-                <div class="shapley-name" title="${name}">${name}</div>
-                <div class="shapley-track">
-                  <div class="shapley-val-bar ${isPos ? 'bar-pos' : 'bar-neg'}" style="width: ${pct}%;"></div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            ${d.shapley.map((val: number, idx: number) => {
+              const name = THERMAL_FEATURES[idx] || `feature_${idx}`;
+              const pct = Math.min(100, Math.abs(val) * 200);
+              const isPos = val >= 0;
+              return `
+                <div class="shapley-bar-row">
+                  <div class="shapley-name" title="${name}">${name}</div>
+                  <div class="shapley-track">
+                    <div class="shapley-val-bar ${isPos ? 'bar-pos' : 'bar-neg'}" style="width: ${pct}%;"></div>
+                  </div>
+                  <div style="text-align: right; font-size: 10px; font-variant-numeric: tabular-nums; font-weight: 600; color: ${isPos ? 'var(--critical-text)' : 'var(--nominal-text)'};">
+                    ${isPos ? '+' : ''}${val.toFixed(3)}
+                  </div>
                 </div>
-                <div style="width: 45px; text-align: right; font-size: 9px; color: ${isPos ? '#ff8a80' : '#b9f6ca'};">
-                  ${isPos ? '+' : ''}${val.toFixed(3)}
-                </div>
-              </div>
-            `;
-          }).join('')}
+              `;
+            }).join('')}
+          </div>
         </div>
 
-        <div>
-          <div style="font-size: 10px; font-weight: 700; color: var(--cyan); margin-bottom: 4px;">
+        <div class="ai-card">
+          <div class="ai-card-title">
             CASE-BASED REASONING (k-NN HISTORICAL ANALOGS)
           </div>
           ${d.similarCases.map((c: any) => `
-            <div style="background: rgba(0,0,0,0.3); border-left: 2px solid var(--cyan); padding: 4px 6px; margin-bottom: 4px; font-size: 10px;">
-              <div style="display: flex; justify-content: space-between; color: var(--cyan);">
+            <div style="background: var(--bg-canvas); border: 1px solid var(--border-primary); border-left: 2px solid var(--control-text); padding: 4px 6px; margin-bottom: 4px; font-size: 10px;">
+              <div style="display: flex; justify-content: space-between; color: var(--control-text); font-weight: 600;">
                 <span>${c.caseId} (${c.faultClass})</span>
-                <span>${(c.similarity * 100).toFixed(0)}% MATCH</span>
+                <span class="tabular-nums">${(c.similarity * 100).toFixed(0)}% MATCH</span>
               </div>
-              <div style="color: var(--text-dim); margin-top: 2px;">${c.outcome}</div>
+              <div style="color: var(--text-muted); margin-top: 2px;">${c.outcome}</div>
             </div>
           `).join('')}
         </div>
@@ -400,12 +432,12 @@ export class AIConsole {
 
       const resp = renderTier2Response(q, this.kg, this.retriever, 'Cruise', 'cfg-default');
       resultsContainer.innerHTML = resp.blocks.map(b => `
-        <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(0,229,255,0.2); border-radius: 4px; padding: 8px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span class="badge ${b.type === 'procedure' ? 'phase-badge' : ''}">${b.type.toUpperCase()}</span>
-            <span style="font-size: 9px; color: var(--text-dim);">CITES: ${b.cites.join(', ') || 'NONE'}</span>
+        <div class="ai-card">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center;">
+            <span class="badge phase-badge">${b.type.toUpperCase()}</span>
+            <span style="font-size: 9px; color: var(--text-muted);">CITES: ${b.cites.join(', ') || 'NONE'}</span>
           </div>
-          <div style="font-size: 11px; line-height: 1.4; color: var(--text-bright);">${b.text}</div>
+          <div style="font-size: 11px; line-height: 1.4; color: var(--text-primary);">${b.text}</div>
         </div>
       `).join('');
     };
@@ -421,7 +453,7 @@ export class AIConsole {
         <div class="medical-banner">
           SYNTHETIC: NOT REAL MEDICAL PROCEDURES • NOT MEDICAL ADVICE
         </div>
-        <div style="text-align: center; color: var(--text-dim); padding: 20px;">
+        <div style="text-align: center; color: var(--text-muted); padding: 20px;">
           AWAITING CREW VITALS SAMPLING...
         </div>
       `;
@@ -436,66 +468,72 @@ export class AIConsole {
           SYNTHETIC: NOT REAL MEDICAL PROCEDURES • NOT MEDICAL ADVICE
         </div>
 
-        <div style="font-weight: 700; color: var(--cyan); font-size: 11px;">
-          DIFFERENTIAL DIAGNOSIS (NAIVE BAYES)
-        </div>
-        ${m.differentials.slice(0, 3).map((d: any) => `
-          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 4px 6px; border-radius: 3px;">
-            <span style="color: ${d.condition === 'Hypoxia' ? 'var(--red)' : 'var(--text-primary)'};">${d.condition}</span>
-            <span style="font-weight: 700;">${(d.likelihood * 100).toFixed(1)}%</span>
+        <div class="ai-card">
+          <div class="ai-card-title">
+            DIFFERENTIAL DIAGNOSIS (NAIVE BAYES)
           </div>
-        `).join('')}
-
-        <div style="font-weight: 700; color: var(--cyan); font-size: 11px; margin-top: 4px;">
-          DECISION TREE EVALUATION PATH
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 3px; font-size: 10px;">
-          ${m.decisionTreePath.map((p: any) => `
-            <div style="color: var(--text-dim);">
-              ▶ Node <span style="color: var(--cyan);">${p.nodeId}</span>: <span style="color: var(--amber);">${p.decision}</span> (value: ${p.value.toFixed(1)})
+          ${m.differentials.slice(0, 3).map((d: any) => `
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-canvas); border: 1px solid var(--border-subtle); padding: 4px 6px; border-radius: 2px;">
+              <span style="color: ${d.condition === 'Hypoxia' ? 'var(--critical-text)' : 'var(--text-primary)'}; font-weight: 500;">${d.condition}</span>
+              <span style="font-weight: 700; font-variant-numeric: tabular-nums;">${(d.likelihood * 100).toFixed(1)}%</span>
             </div>
           `).join('')}
         </div>
 
-        <div style="font-weight: 700; color: var(--cyan); font-size: 11px; margin-top: 4px;">
-          RECOMMENDED PROTOCOLS (FORMULARY)
-        </div>
-        ${m.recommendations.map((r: any) => `
-          <div style="background: rgba(0,0,0,0.4); border-left: 2px solid var(--amber); padding: 6px; font-size: 10px;">
-            <div style="font-weight: 700; color: var(--amber);">${r.action}</div>
-            ${r.medication ? `<div style="color: var(--green); margin-top: 2px;">Rx: ${r.medication} (${r.dose}, ${r.route})</div>` : ''}
+        <div class="ai-card">
+          <div class="ai-card-title">
+            DECISION TREE EVALUATION PATH
           </div>
-        `).join('')}
+          <div style="display: flex; flex-direction: column; gap: 3px; font-size: 10px;">
+            ${m.decisionTreePath.map((p: any) => `
+              <div style="color: var(--text-muted);">
+                ▶ Node <span style="color: var(--control-text); font-weight: 600;">${p.nodeId}</span>: <span style="color: var(--caution-text); font-weight: 600;">${p.decision}</span> (value: <span class="tabular-nums">${p.value.toFixed(1)}</span>)
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="ai-card">
+          <div class="ai-card-title">
+            RECOMMENDED PROTOCOLS (FORMULARY)
+          </div>
+          ${m.recommendations.map((r: any) => `
+            <div style="background: var(--bg-canvas); border-left: 2px solid var(--caution-text); padding: 6px; font-size: 10px;">
+              <div style="font-weight: 600; color: var(--caution-text);">${r.action}</div>
+              ${r.medication ? `<div style="color: var(--nominal-text); margin-top: 2px; font-weight: 500;">Rx: ${r.medication} (${r.dose}, ${r.route})</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
       </div>
     `;
   }
 
   private _renderSafety(): void {
     this.contentEl.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div class="action-card">
-          <div style="font-weight: 700; color: var(--cyan);">TIER 0 SAFETY GATE (TWO-STAGE INTERLOCK)</div>
-          <div style="color: var(--text-dim); font-size: 10px; line-height: 1.3;">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div class="ai-card">
+          <div class="ai-card-title">TIER 0 SAFETY GATE (TWO-STAGE INTERLOCK)</div>
+          <div style="color: var(--text-muted); font-size: 10px; line-height: 1.4;">
             Autonomous AI recommendations can only propose actions. Human flight controller confirmation
             or deterministic FDIR trigger required for actuator commit.
           </div>
         </div>
 
-        <div class="action-card">
+        <div class="ai-card">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-weight: 700;">PROCEDURE: LOOP B FAILOVER</span>
+            <span style="font-weight: 600; font-family: var(--font-sans); text-transform: uppercase;">PROCEDURE: LOOP B FAILOVER</span>
             <span class="badge phase-badge">PROC_LOOP_FAILOVER</span>
           </div>
-          <div style="color: var(--text-dim); font-size: 10px;">
+          <div style="color: var(--text-muted); font-size: 10px;">
             Switches active coolant circulation from Loop A to redundant Loop B.
           </div>
-          <div style="display: flex; gap: 8px; margin-top: 6px;">
+          <div style="display: flex; gap: 6px; margin-top: 4px;">
             <button id="arm-failover-btn" class="arm-btn">STAGE 1: ARM</button>
             <button id="exec-failover-btn" class="exec-btn" style="display: ${this.armedCommandId === 'proc_loop_failover' ? 'block' : 'none'};">
               STAGE 2: COMMIT & EXECUTE
             </button>
           </div>
-          <div id="safety-status" style="font-size: 10px; margin-top: 4px; color: var(--amber);"></div>
+          <div id="safety-status" style="font-size: 10px; margin-top: 4px; color: var(--caution-text); font-weight: 600;"></div>
         </div>
       </div>
     `;
@@ -516,7 +554,7 @@ export class AIConsole {
     execBtn.addEventListener('click', () => {
       const confirmResult = this.safetyGate.confirmPending();
       if (confirmResult && confirmResult.approved) {
-        statusEl.style.color = 'var(--green)';
+        statusEl.style.color = 'var(--nominal-text)';
         statusEl.textContent = 'SAFETY GATE PASSED: COMMAND COMMITTED TO ACTUATORS';
         this.bus.emit('safety:actionCommitted', {
           procedureId: 'proc_loop_failover',
@@ -524,7 +562,7 @@ export class AIConsole {
           timestamp: Date.now(),
         });
       } else {
-        statusEl.style.color = 'var(--red)';
+        statusEl.style.color = 'var(--critical-text)';
         statusEl.textContent = 'SAFETY GATE: CONFIRMATION FAILED OR REJECTED';
       }
       this.armedCommandId = null;

@@ -52,49 +52,83 @@ export class EvalSuite {
         .eval-suite-panel {
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          padding: 12px;
+          gap: 10px;
+          padding: 10px;
           height: 100%;
           overflow-y: auto;
           font-family: var(--font-mono);
           font-size: 11px;
           color: var(--text-primary);
-          background: rgba(10, 16, 26, 0.95);
+          background: var(--bg-panel);
         }
         .eval-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+          border-bottom: 1px solid var(--border-primary);
           padding-bottom: 6px;
         }
         .eval-title {
-          font-size: 13px;
+          font-family: var(--font-sans);
+          font-size: 11px;
           font-weight: 700;
-          color: var(--cyan);
-          letter-spacing: 1px;
+          color: var(--text-secondary);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .eval-btn-row {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+        .eval-run-btn {
+          background: var(--control-bg);
+          border: 1px solid var(--control-border);
+          color: var(--control-text);
+          font-family: var(--font-mono);
+          font-size: 11px;
+          font-weight: 700;
+          padding: 6px 12px;
+          border-radius: 2px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+        }
+        .eval-run-btn:hover {
+          background: rgba(56, 189, 248, 0.25);
+        }
+        .eval-run-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
         .eval-table {
           width: 100%;
           border-collapse: collapse;
           font-size: 10px;
+          font-family: var(--font-mono);
         }
         .eval-table th {
           text-align: left;
-          color: var(--cyan);
-          padding: 6px;
-          border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+          color: var(--text-muted);
+          font-family: var(--font-sans);
+          font-size: 9px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          padding: 5px 8px;
+          background: var(--bg-card);
+          border-bottom: 1px solid var(--border-primary);
         }
         .eval-table td {
-          padding: 6px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          padding: 5px 8px;
+          border-bottom: 1px solid var(--border-subtle);
         }
         .eval-badge-pass {
-          color: var(--green);
+          color: var(--nominal-text);
           font-weight: 700;
         }
         .eval-badge-fail {
-          color: var(--red);
+          color: var(--critical-text);
           font-weight: 700;
         }
       </style>
@@ -104,17 +138,17 @@ export class EvalSuite {
         <div id="eval-summary-badge" class="badge phase-badge">READY TO RUN</div>
       </div>
 
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <button id="run-eval-btn" class="search-btn" style="padding: 8px 16px;">
+      <div class="eval-btn-row">
+        <button id="run-eval-btn" class="eval-run-btn">
           RUN ALL VERIFICATION BENCHMARKS ▶
         </button>
-        <span style="color: var(--text-dim); font-size: 10px;">
+        <span style="color: var(--text-muted); font-size: 10px;">
           Executes end-to-end physics, AI diagnostic latency, and DTN spool stress tests.
         </span>
       </div>
 
-      <div id="eval-report-container" style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid rgba(0,229,255,0.15); border-radius: 4px; padding: 10px;">
-        <div style="color: var(--text-dim); text-align: center; padding: 30px;">
+      <div id="eval-report-container" style="flex: 1; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--border-primary); border-radius: 4px; padding: 8px;">
+        <div style="color: var(--text-muted); text-align: center; padding: 30px;">
           Click "RUN ALL VERIFICATION BENCHMARKS" to evaluate system metrics.
         </div>
       </div>
@@ -295,8 +329,10 @@ export class EvalSuite {
     this.summaryBadge.textContent = allPassed
       ? `ALL PASSED (${totalPassed}/${this.results.length})`
       : `FAILURES DETECTED (${totalPassed}/${this.results.length})`;
-    this.summaryBadge.style.background = allPassed ? 'rgba(0, 230, 118, 0.2)' : 'rgba(255, 23, 68, 0.2)';
-    this.summaryBadge.style.color = allPassed ? 'var(--green)' : 'var(--red)';
+    this.summaryBadge.className = 'badge';
+    this.summaryBadge.style.background = allPassed ? 'var(--nominal-bg)' : 'var(--critical-bg)';
+    this.summaryBadge.style.border = allPassed ? '1px solid var(--nominal-border)' : '1px solid var(--critical-border)';
+    this.summaryBadge.style.color = allPassed ? 'var(--nominal-text)' : 'var(--critical-text)';
 
     this.reportContainer.innerHTML = `
       <table class="eval-table">
@@ -314,15 +350,15 @@ export class EvalSuite {
         <tbody>
           ${this.results.map(r => `
             <tr>
-              <td style="color: var(--cyan); font-weight: 700;">${r.suiteName}</td>
-              <td>${r.testName}</td>
+              <td style="color: var(--text-primary); font-weight: 600;">${r.suiteName}</td>
+              <td style="color: var(--text-secondary);">${r.testName}</td>
               <td class="${r.passed ? 'eval-badge-pass' : 'eval-badge-fail'}">
                 ${r.passed ? '✓ PASS' : '✗ FAIL'}
               </td>
-              <td style="color: var(--text-dim);">${r.metricName}</td>
-              <td style="font-weight: 700;">${r.measuredValue}</td>
-              <td style="color: var(--text-dim);">${r.targetThreshold}</td>
-              <td style="color: var(--text-dim);">${r.durationMs.toFixed(1)} ms</td>
+              <td style="color: var(--text-muted);">${r.metricName}</td>
+              <td style="font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums;">${r.measuredValue}</td>
+              <td style="color: var(--text-muted); font-variant-numeric: tabular-nums;">${r.targetThreshold}</td>
+              <td style="color: var(--text-muted); font-variant-numeric: tabular-nums;">${r.durationMs.toFixed(1)} ms</td>
             </tr>
           `).join('')}
         </tbody>

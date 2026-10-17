@@ -5,6 +5,8 @@
  * High-density mission telemetry monitoring console.
  * Displays physical state channels grouped by subsystem, 60-second sparkline trends,
  * stochastic sensor status (OK/DROPOUT/STUCK), and real-time limit threshold color-coding.
+ * 
+ * Refactored to Strict 4-Column Layout (Label, Status Pill, Tabular Num Value, 64x18 Sparkline).
  */
 
 import { RingBuffer } from '../core/store.js';
@@ -109,8 +111,8 @@ export class TelemetryPanel {
       <div class="telem-panel-header">
         <div class="telem-panel-title">SUBSYSTEM TELEMETRY</div>
         <div class="telem-badge-row">
-          <span class="fidelity-badge fidelity-high">60s TRENDS</span>
-          <span class="synthetic-banner">SYNTHETIC</span>
+          <span class="badge fidelity-high">60s TRENDS</span>
+          <span class="badge synthetic-banner">SYNTHETIC</span>
         </div>
       </div>
       <div class="telem-sections-container"></div>
@@ -144,38 +146,30 @@ export class TelemetryPanel {
         row.className = 'telem-row';
         row.dataset.channel = ch.id;
 
-        // Meta info (name + unit + badge)
-        const metaDiv = document.createElement('div');
-        metaDiv.className = 'telem-meta';
-
+        // Col 1: Label
         const nameSpan = document.createElement('span');
         nameSpan.className = 'telem-name';
         nameSpan.textContent = ch.name;
-        metaDiv.appendChild(nameSpan);
+        nameSpan.title = `${ch.name} (${ch.unit})`;
+        row.appendChild(nameSpan);
 
-        const badgeSpan = document.createElement('span');
-        badgeSpan.className = `fidelity-badge fidelity-${ch.fidelity.toLowerCase()}`;
-        badgeSpan.textContent = ch.fidelity;
-        metaDiv.appendChild(badgeSpan);
-
+        // Col 2: Status pill
         const statusBadge = document.createElement('span');
-        statusBadge.className = 'telem-status-badge';
-        statusBadge.style.display = 'none';
-        metaDiv.appendChild(statusBadge);
+        statusBadge.className = 'telem-status-badge status-nom';
+        statusBadge.textContent = 'NOM';
+        row.appendChild(statusBadge);
 
-        row.appendChild(metaDiv);
-
-        // Numeric value
+        // Col 3: Numeric value
         const valSpan = document.createElement('span');
-        valSpan.className = 'telem-value level-nominal';
+        valSpan.className = 'telem-value level-nominal tabular-nums';
         valSpan.textContent = '-- ' + ch.unit;
         row.appendChild(valSpan);
 
-        // Canvas Sparkline
+        // Col 4: Canvas Sparkline (64x18)
         const canvas = document.createElement('canvas');
         canvas.className = 'telem-sparkline';
-        canvas.width = 80;
-        canvas.height = 20;
+        canvas.width = 64;
+        canvas.height = 18;
         row.appendChild(canvas);
 
         secContent.appendChild(row);
@@ -206,49 +200,50 @@ export class TelemetryPanel {
     style.id = 'telem-panel-styles';
     style.textContent = `
       .telem-panel-header {
-        padding: 8px 10px;
+        padding: 6px 12px;
         background: var(--bg-panel);
-        border-bottom: var(--border);
+        border-bottom: 1px solid var(--border-primary);
         display: flex;
         justify-content: space-between;
         align-items: center;
         position: sticky;
         top: 0;
         z-index: 5;
+        min-height: 30px;
+        flex-shrink: 0;
       }
       .telem-panel-title {
-        font-family: var(--font-mono);
+        font-family: var(--font-sans);
         font-size: 11px;
         font-weight: 700;
-        color: var(--cyan);
-        letter-spacing: 1.2px;
+        color: var(--text-secondary);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
       .telem-badge-row {
         display: flex;
-        gap: 4px;
+        gap: 6px;
         align-items: center;
       }
       .telem-sections-container {
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        padding: 6px 4px;
+        flex: 1;
+        overflow-y: auto;
       }
       .telem-section {
-        background: rgba(14, 20, 28, 0.7);
-        border: 1px solid rgba(0, 229, 255, 0.15);
-        border-radius: 2px;
-        overflow: hidden;
+        border-bottom: 1px solid var(--border-primary);
       }
       .telem-sec-header {
-        background: rgba(0, 229, 255, 0.08);
+        background: var(--bg-card);
         padding: 3px 8px;
-        font-family: var(--font-mono);
-        font-size: 10px;
+        font-family: var(--font-sans);
+        font-size: 9px;
         font-weight: 700;
-        color: var(--cyan);
-        letter-spacing: 1px;
-        border-bottom: 1px solid rgba(0, 229, 255, 0.1);
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--border-subtle);
       }
       .telem-sec-content {
         display: flex;
@@ -256,24 +251,22 @@ export class TelemetryPanel {
       }
       .telem-row {
         display: grid;
-        grid-template-columns: 1fr auto 80px;
+        grid-template-columns: 1fr 34px 75px 64px;
         align-items: center;
         gap: 6px;
-        padding: 2px 6px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        padding: 2px 8px;
+        height: 26px;
+        min-height: 26px;
+        border-bottom: 1px solid var(--border-subtle);
+        transition: background 0.12s ease;
       }
-      .telem-row:last-child {
-        border-bottom: none;
-      }
-      .telem-meta {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        overflow: hidden;
+      .telem-row:hover {
+        background: var(--bg-hover);
       }
       .telem-name {
         font-family: var(--font-mono);
         font-size: 10px;
+        font-weight: 500;
         color: var(--text-secondary);
         white-space: nowrap;
         text-overflow: ellipsis;
@@ -283,28 +276,45 @@ export class TelemetryPanel {
         font-family: var(--font-mono);
         font-size: 8px;
         font-weight: 700;
-        padding: 0 3px;
+        padding: 1px 3px;
         border-radius: 2px;
-        background: var(--amber);
-        color: #000;
+        text-align: center;
+        letter-spacing: 0.04em;
+        line-height: 1.2;
+      }
+      .status-nom {
+        color: var(--nominal-text);
+        background: var(--nominal-bg);
+        border: 1px solid var(--nominal-border);
+      }
+      .status-caut {
+        color: var(--caution-text);
+        background: var(--caution-bg);
+        border: 1px solid var(--caution-border);
+      }
+      .status-crit {
+        color: var(--critical-text);
+        background: var(--critical-bg);
+        border: 1px solid var(--critical-border);
       }
       .telem-value {
         font-family: var(--font-mono);
         font-size: 11px;
-        font-weight: 600;
+        font-weight: 500;
         font-variant-numeric: tabular-nums;
         text-align: right;
         white-space: nowrap;
       }
+      .level-nominal { color: var(--text-primary); }
+      .level-caution { color: var(--caution-text); font-weight: 600; }
+      .level-warning { color: var(--critical-text); font-weight: 600; }
+      .level-critical { color: var(--critical-text); font-weight: 700; }
       .telem-sparkline {
-        background: rgba(0, 0, 0, 0.35);
-        border: 1px solid rgba(0, 229, 255, 0.1);
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-primary);
         border-radius: 2px;
+        display: block;
       }
-      .level-nominal { color: var(--green); }
-      .level-caution { color: var(--amber); text-shadow: 0 0 4px rgba(255, 171, 0, 0.4); }
-      .level-warning { color: var(--red); font-weight: 700; text-shadow: 0 0 6px rgba(255, 23, 68, 0.6); }
-      .level-critical { color: var(--magenta); font-weight: 700; text-shadow: 0 0 8px rgba(224, 64, 251, 0.8); }
     `;
     document.head.appendChild(style);
   }
@@ -340,24 +350,27 @@ export class TelemetryPanel {
 
       // 2. Alert level styling
       const level = alertMap.get(cfg.id) ?? 'NOMINAL';
-      row.valueEl.className = `telem-value level-${level.toLowerCase()}`;
+      row.valueEl.className = `telem-value level-${level.toLowerCase()} tabular-nums`;
 
-      // 3. Sensor status badge (OK / DROPOUT / STUCK)
+      // 3. Sensor status badge (OK / DROPOUT / STUCK / ALERT)
       if (reading.status === 'STUCK') {
-        row.statusBadgeEl.style.display = 'inline-block';
         row.statusBadgeEl.textContent = 'STUCK';
-        row.statusBadgeEl.style.background = 'var(--red)';
-        row.statusBadgeEl.style.color = '#fff';
+        row.statusBadgeEl.className = 'telem-status-badge status-crit';
       } else if (reading.status === 'DROPOUT') {
-        row.statusBadgeEl.style.display = 'inline-block';
         row.statusBadgeEl.textContent = 'DROP';
-        row.statusBadgeEl.style.background = 'var(--amber)';
-        row.statusBadgeEl.style.color = '#000';
+        row.statusBadgeEl.className = 'telem-status-badge status-caut';
+      } else if (level === 'CRITICAL' || level === 'WARNING') {
+        row.statusBadgeEl.textContent = level === 'CRITICAL' ? 'CRIT' : 'WARN';
+        row.statusBadgeEl.className = 'telem-status-badge status-crit';
+      } else if (level === 'CAUTION') {
+        row.statusBadgeEl.textContent = 'CAUT';
+        row.statusBadgeEl.className = 'telem-status-badge status-caut';
       } else {
-        row.statusBadgeEl.style.display = 'none';
+        row.statusBadgeEl.textContent = 'NOM';
+        row.statusBadgeEl.className = 'telem-status-badge status-nom';
       }
 
-      // 4. Render 60-second Canvas Sparkline
+      // 4. Render 60-second Canvas Sparkline (64x18)
       this.drawSparkline(row, level);
     }
   }
@@ -391,12 +404,35 @@ export class TelemetryPanel {
     const plotMax = max + pad;
     const plotRange = plotMax - plotMin;
 
-    // Pick stroke color based on alert state
-    let strokeColor = '#00e676'; // green nominal
-    if (level === 'CAUTION') strokeColor = '#ffab00'; // amber
-    if (level === 'WARNING') strokeColor = '#ff1744'; // red
-    if (level === 'CRITICAL') strokeColor = '#e040fb'; // magenta
+    // Pick stroke & fill colors based on alert state
+    let strokeColor = '#38BDF8';
+    let fillColor = 'rgba(56, 189, 248, 0.1)';
+    if (level === 'NOMINAL') {
+      strokeColor = '#34D399';
+      fillColor = 'rgba(52, 211, 153, 0.1)';
+    } else if (level === 'CAUTION') {
+      strokeColor = '#FBBF24';
+      fillColor = 'rgba(251, 191, 36, 0.12)';
+    } else if (level === 'WARNING' || level === 'CRITICAL') {
+      strokeColor = '#F87171';
+      fillColor = 'rgba(248, 113, 113, 0.15)';
+    }
 
+    // Draw subtle area fill underneath
+    ctx.beginPath();
+    ctx.moveTo(1, h);
+    for (let i = 0; i < len; i++) {
+      const x = (i / (len - 1)) * (w - 2) + 1;
+      const normalized = (data[i] - plotMin) / plotRange;
+      const y = h - 2 - normalized * (h - 4);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w - 1, h);
+    ctx.closePath();
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+
+    // Draw stroke line
     ctx.beginPath();
     for (let i = 0; i < len; i++) {
       const x = (i / (len - 1)) * (w - 2) + 1;
@@ -411,7 +447,7 @@ export class TelemetryPanel {
     }
 
     ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.25;
     ctx.stroke();
   }
 }

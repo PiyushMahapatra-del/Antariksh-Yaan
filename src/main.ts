@@ -19,6 +19,7 @@ import {
   MemoryView,
   ScenarioRunner,
   EvalSuite,
+  ICONS,
 } from './ui/index.js';
 import { SafetyGate } from './fsw/safety-gate.js';
 import { MemoryManager } from './fsw/memory-manager.js';
@@ -137,16 +138,6 @@ function setupConsole(): void {
   // Inject console styling
   const style = document.createElement('style');
   style.textContent = `
-    #app {
-      padding-top: 18px;
-      grid-template-rows: 40px 1fr 180px !important;
-    }
-    #top-bar {
-      margin-top: 0 !important;
-      display: flex;
-      align-items: center;
-      padding: 0 10px;
-    }
     .topbar-container {
       display: flex;
       align-items: center;
@@ -156,7 +147,7 @@ function setupConsole(): void {
       font-family: var(--font-mono);
       font-size: 11px;
       user-select: none;
-      gap: 10px;
+      gap: 12px;
     }
     .topbar-left {
       display: flex;
@@ -165,129 +156,196 @@ function setupConsole(): void {
       flex-shrink: 0;
     }
     .mission-title {
-      color: var(--cyan);
+      font-family: var(--font-sans);
+      color: var(--text-primary);
       font-weight: 700;
       font-size: 13px;
-      letter-spacing: 1.5px;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      text-shadow: var(--glow-cyan);
     }
     .badge {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
       font-family: var(--font-mono);
-      font-size: 9px;
-      font-weight: 700;
-      padding: 2px 5px;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
       border-radius: 2px;
-      letter-spacing: 1px;
+      letter-spacing: 0.06em;
       vertical-align: middle;
+      text-transform: uppercase;
     }
     .phase-badge {
-      background: var(--bg-glass);
-      border: 1px solid var(--cyan-dim);
-      color: var(--cyan);
+      background: var(--bg-card);
+      border: 1px solid var(--border-primary);
+      color: var(--text-secondary);
+    }
+    .fidelity-high {
+      background: var(--nominal-bg);
+      border: 1px solid var(--nominal-border);
+      color: var(--nominal-text);
+    }
+    .synthetic-banner {
+      background: var(--caution-bg);
+      border: 1px solid var(--caution-border);
+      color: var(--caution-text);
     }
     .topbar-center {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       overflow: hidden;
-      text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .topbar-readout {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .readout-label {
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .topbar-divider {
+      width: 1px;
+      height: 16px;
+      background: var(--border-primary);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
     .met-badge {
-      color: var(--amber);
-      font-weight: 700;
-      letter-spacing: 1px;
-      font-size: 12px;
-      background: rgba(255, 171, 0, 0.1);
-      border: 1px solid rgba(255, 171, 0, 0.3);
-      padding: 2px 6px;
-      border-radius: 2px;
+      color: var(--caution-text);
+      font-weight: 600;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
     }
     .time-badge {
       color: var(--text-primary);
+      font-family: var(--font-mono);
       font-size: 11px;
-      background: var(--bg-glass);
-      border: 1px solid rgba(0, 229, 255, 0.15);
-      padding: 2px 6px;
-      border-radius: 2px;
+      font-variant-numeric: tabular-nums;
     }
     .link-badge {
       display: flex;
       align-items: center;
       gap: 5px;
       font-size: 11px;
-      padding: 2px 6px;
-      background: var(--bg-glass);
-      border: 1px solid rgba(0, 229, 255, 0.15);
-      border-radius: 2px;
     }
     .link-indicator {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       display: inline-block;
+      flex-shrink: 0;
     }
-    .link-NOMINAL { background: var(--green); box-shadow: 0 0 6px var(--green); }
-    .link-DEGRADED { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
-    .link-BLACKOUT { background: var(--red); box-shadow: 0 0 6px var(--red); }
-    .link-OVERRIDE { background: var(--magenta); box-shadow: 0 0 6px var(--magenta); }
+    .link-NOMINAL { background: var(--nominal-text); }
+    .link-DEGRADED { background: var(--caution-text); }
+    .link-BLACKOUT { background: var(--critical-text); }
+    .link-OVERRIDE { background: var(--caution-text); }
 
     .topbar-right {
       display: flex;
       align-items: center;
-      gap: 5px;
       flex-shrink: 0;
     }
+    .warp-controls-group {
+      display: flex;
+      align-items: center;
+      background: var(--bg-card);
+      border: 1px solid var(--border-primary);
+      border-radius: 4px;
+      padding: 2px;
+      gap: 2px;
+    }
     .warp-btn {
-      background: var(--bg-glass);
-      border: 1px solid var(--cyan-dim);
+      background: transparent;
+      border: 1px solid transparent;
       color: var(--text-secondary);
       font-family: var(--font-mono);
       font-size: 10px;
-      padding: 3px 6px;
+      font-weight: 500;
+      padding: 2px 6px;
       cursor: pointer;
       border-radius: 2px;
       transition: all 0.15s ease;
+      user-select: none;
     }
     .warp-btn:hover {
-      border-color: var(--cyan);
       color: var(--text-primary);
+      background: var(--bg-hover);
     }
     .warp-btn.active {
-      background: var(--cyan);
-      color: #000;
+      background: var(--control-bg);
+      color: var(--control-text);
       font-weight: 700;
-      border-color: var(--cyan);
-      box-shadow: var(--glow-cyan);
+      border-color: var(--control-border);
     }
     .pause-btn {
-      border-color: var(--amber);
-      color: var(--amber);
-      font-weight: 700;
+      color: var(--caution-text);
+      font-weight: 600;
     }
     .pause-btn.paused {
-      background: var(--amber);
-      color: #000;
+      background: var(--caution-bg);
+      border-color: var(--caution-border);
+    }
+
+    /* Left Activity Rail */
+    .rail-btn {
+      width: 40px;
+      height: 44px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      background: transparent;
+      border: none;
+      border-left: 2px solid transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s ease;
+      padding: 0;
+      user-select: none;
+    }
+    .rail-btn:hover {
+      color: var(--text-primary);
+      background: var(--bg-card);
+    }
+    .rail-btn.active {
+      color: var(--text-primary);
+      background: var(--bg-card);
+      border-left-color: var(--control-text);
+      font-weight: 600;
+    }
+    .rail-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .rail-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
 
     /* High Warp Alert Banner */
     .high-warp-banner {
-      background: rgba(255, 171, 0, 0.2);
-      border-bottom: 1px solid var(--amber);
-      color: var(--amber);
+      background: rgba(217, 119, 6, 0.15);
+      border-bottom: 1px solid rgba(217, 119, 6, 0.35);
+      color: #FBBF24;
       font-family: var(--font-mono);
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
       text-align: center;
-      padding: 4px;
-      letter-spacing: 1.5px;
-      animation: pulse-warn 1.5s infinite alternate;
-    }
-    @keyframes pulse-warn {
-      from { background: rgba(255, 171, 0, 0.15); }
-      to { background: rgba(255, 171, 0, 0.35); }
+      padding: 3px 8px;
+      letter-spacing: 0.08em;
     }
 
     /* Center View Layout & View Mode Tabs */
@@ -302,75 +360,49 @@ function setupConsole(): void {
     .view-mode-tabs {
       display: flex;
       background: var(--bg-panel);
-      border-bottom: var(--border);
-      padding: 0 12px;
+      border-bottom: 1px solid var(--border-primary);
+      padding: 0 10px;
       gap: 6px;
-      height: 30px;
+      height: 32px;
       align-items: center;
+      justify-content: space-between;
       user-select: none;
       flex-shrink: 0;
     }
     .view-tab-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       background: transparent;
       border: none;
       border-bottom: 2px solid transparent;
       color: var(--text-secondary);
-      font-family: var(--font-mono);
+      font-family: var(--font-sans);
       font-size: 11px;
       font-weight: 600;
-      padding: 4px 10px;
+      padding: 0 10px;
+      height: 32px;
       cursor: pointer;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
       transition: all 0.15s ease;
     }
     .view-tab-btn:hover {
       color: var(--text-primary);
     }
     .view-tab-btn.active {
-      color: var(--cyan);
-      border-bottom-color: var(--cyan);
+      color: var(--control-text);
+      border-bottom-color: var(--control-text);
       font-weight: 700;
-    }
-    .left-tabs {
-      display: flex;
-      background: rgba(0, 0, 0, 0.6);
-      border-bottom: var(--border);
-      gap: 2px;
-      padding: 4px;
-      user-select: none;
-    }
-    .left-tab-btn {
-      flex: 1;
-      background: transparent;
-      border: 1px solid transparent;
-      color: var(--text-secondary);
-      font-family: var(--font-mono);
-      font-size: 10px;
-      font-weight: 700;
-      padding: 5px 2px;
-      text-align: center;
-      cursor: pointer;
-      border-radius: 2px;
-      transition: all 0.15s ease;
-    }
-    .left-tab-btn:hover {
-      color: var(--text-primary);
-      border-color: rgba(0, 229, 255, 0.3);
-    }
-    .left-tab-btn.active {
-      background: rgba(0, 229, 255, 0.15);
-      border-color: var(--cyan);
-      color: var(--cyan);
-      text-shadow: var(--glow-cyan);
     }
     .cam-btn {
-      background: var(--bg-glass);
-      border: 1px solid var(--cyan-dim);
+      background: var(--bg-card);
+      border: 1px solid var(--border-primary);
       color: var(--text-secondary);
       font-family: var(--font-mono);
       font-size: 10px;
       font-weight: 600;
-      padding: 2px 6px;
+      padding: 2px 7px;
       cursor: pointer;
       border-radius: 2px;
       transition: all 0.15s ease;
@@ -378,37 +410,36 @@ function setupConsole(): void {
       white-space: nowrap;
     }
     .cam-btn:hover {
-      border-color: var(--cyan);
+      border-color: var(--border-subtle);
       color: var(--text-primary);
     }
     .cam-btn.active {
-      background: var(--cyan);
-      color: #000;
+      background: var(--control-bg);
+      color: var(--control-text);
       font-weight: 700;
-      border-color: var(--cyan);
-      box-shadow: var(--glow-cyan);
+      border-color: var(--control-border);
     }
     #sky-view-container {
       flex: 1;
       width: 100%;
-      height: calc(100% - 30px);
+      height: calc(100% - 32px);
       position: relative;
       overflow: hidden;
-      background: var(--bg-primary);
+      background: var(--bg-canvas);
     }
     #tactical-map-container {
       flex: 1;
       width: 100%;
-      height: calc(100% - 30px);
+      height: calc(100% - 32px);
       position: relative;
       overflow: hidden;
-      background: var(--bg-primary);
+      background: var(--bg-canvas);
       display: none;
     }
     #center-hud-view {
       flex: 1;
       width: 100%;
-      height: calc(100% - 30px);
+      height: calc(100% - 32px);
       display: none;
       flex-direction: column;
       overflow: hidden;
@@ -420,53 +451,54 @@ function setupConsole(): void {
       flex-direction: column;
       height: 100%;
       overflow: hidden;
-      position: relative;
-      background: radial-gradient(circle at 50% 40%, rgba(0, 229, 255, 0.04) 0%, rgba(10, 14, 20, 0.98) 75%);
+      background: var(--bg-canvas);
     }
     .hud-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 16px;
-      border-bottom: var(--border);
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-primary);
       background: var(--bg-panel);
     }
     .hud-title {
-      color: var(--cyan);
-      font-family: var(--font-mono);
-      font-size: 13px;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: 1.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
     .hud-sub {
-      color: var(--text-secondary);
+      color: var(--text-muted);
       font-family: var(--font-mono);
       font-size: 10px;
     }
     .hud-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 12px;
-      padding: 16px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      padding: 12px;
       overflow-y: auto;
       flex: 1;
     }
     .hud-card {
       background: var(--bg-panel);
-      border: var(--border);
-      padding: 12px 14px;
-      border-radius: 3px;
+      border: 1px solid var(--border-primary);
+      padding: 10px 12px;
+      border-radius: 4px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
     }
     .card-title {
-      font-family: var(--font-mono);
-      font-size: 11px;
+      font-family: var(--font-sans);
+      font-size: 10px;
       font-weight: 700;
-      color: var(--cyan);
-      letter-spacing: 1px;
-      border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+      color: var(--text-secondary);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-subtle);
       padding-bottom: 4px;
       margin-bottom: 4px;
     }
@@ -478,14 +510,17 @@ function setupConsole(): void {
       font-size: 11px;
       color: var(--text-secondary);
       padding: 2px 0;
+      border-bottom: 1px solid rgba(30, 41, 59, 0.4);
     }
     .mono-val {
       color: var(--text-primary);
-      font-weight: 600;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
     }
     .highlight-val {
-      color: var(--cyan);
-      font-weight: 700;
+      color: var(--control-text);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
     }
   `;
   document.head.appendChild(style);
@@ -494,26 +529,36 @@ function setupConsole(): void {
   topBar.innerHTML = `
     <div class="topbar-container">
       <div class="topbar-left">
-        <span class="mission-title">AEGIS TRANSIT</span>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="color: #38BDF8; display: inline-flex;">${ICONS.DeltaLogo}</span>
+          <span class="mission-title">AEGIS TRANSIT</span>
+        </div>
         <span id="phase-badge" class="badge phase-badge">${simLoop.trajectory.shipState.phase.toUpperCase()}</span>
         <span class="badge fidelity-high">M1 ACTIVE</span>
         <span class="badge synthetic-banner">SYNTHETIC</span>
       </div>
       <div class="topbar-center">
-        <span>MET:</span>
-        <span id="met-display" class="met-badge">${formatMET(simLoop.clock.metSeconds)}</span>
-        <span id="sim-time-display" class="time-badge">${formatJD(simLoop.clock.simTimeJD)}</span>
+        <div class="topbar-readout">
+          <span class="readout-label">MET:</span>
+          <span id="met-display" class="met-badge tabular-nums">${formatMET(simLoop.clock.metSeconds)}</span>
+        </div>
+        <div class="topbar-divider"></div>
+        <div class="topbar-readout">
+          <span id="sim-time-display" class="time-badge tabular-nums">${formatJD(simLoop.clock.simTimeJD)}</span>
+        </div>
+        <div class="topbar-divider"></div>
         <div id="link-status" class="link-badge">
           <span id="link-indicator" class="link-indicator link-NOMINAL"></span>
-          <span>LINK:</span>
-          <span id="link-state-val" style="font-weight: 700;">NOMINAL</span>
-          <span id="link-delay-val" style="color: var(--text-secondary);">(0s OWLT)</span>
+          <span class="readout-label">LINK:</span>
+          <span id="link-state-val" style="font-weight: 600; color: #34D399;">NOMINAL</span>
+          <span id="link-delay-val" style="color: #64748B; font-size: 10px;">(0s OWLT)</span>
         </div>
       </div>
       <div class="topbar-right">
-        <button id="pause-btn" class="warp-btn pause-btn" title="Toggle pause [Space]">PAUSE</button>
-        <span style="color: var(--text-secondary); margin: 0 1px;">|</span>
-        <div id="warp-buttons" style="display: flex; gap: 3px;"></div>
+        <div class="warp-controls-group">
+          <button id="pause-btn" class="warp-btn pause-btn" title="Toggle pause [Space]">PAUSE</button>
+          <div id="warp-buttons" style="display: flex; gap: 2px;"></div>
+        </div>
       </div>
     </div>
   `;
@@ -553,21 +598,30 @@ function setupConsole(): void {
       SUBSYSTEMS PAUSED (HIGH WARP &gt; 600x) — ASTRODYNAMICS PROPAGATION ONLY
     </div>
     <div class="center-view-wrapper">
-      <div class="view-mode-tabs" style="justify-content: space-between;">
-        <div style="display: flex; gap: 6px; align-items: center;">
-          <button id="tab-sky-view" class="view-tab-btn active" title="Three.js 3D Celestial Sky View [Default]">★ SKY VIEW</button>
-          <button id="tab-tactical-map" class="view-tab-btn" title="Top-down Canvas 2D Ecliptic Display">◉ TACTICAL MAP</button>
-          <button id="tab-telemetry-hud" class="view-tab-btn" title="Astrodynamics & Kinematic Metrics">▤ ASTRODYNAMICS TELEMETRY</button>
+      <div class="view-mode-tabs">
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <button id="tab-sky-view" class="view-tab-btn active" title="Three.js 3D Celestial Sky View [Default]">
+            ${ICONS.Compass}
+            <span>SKY VIEW</span>
+          </button>
+          <button id="tab-tactical-map" class="view-tab-btn" title="Top-down Canvas 2D Ecliptic Display">
+            ${ICONS.Map}
+            <span>TACTICAL MAP</span>
+          </button>
+          <button id="tab-telemetry-hud" class="view-tab-btn" title="Astrodynamics & Kinematic Metrics">
+            ${ICONS.Table2}
+            <span>ASTRODYNAMICS TELEMETRY</span>
+          </button>
         </div>
         <div id="sky-view-controls" style="display: flex; gap: 4px; align-items: center;">
-          <span style="color: var(--text-secondary); font-size: 10px; font-family: var(--font-mono); margin-right: 2px;">CAMERA:</span>
+          <span style="color: #64748B; font-size: 10px; font-family: var(--font-mono); margin-right: 2px; font-weight: 600;">CAMERA:</span>
           <button class="cam-btn active" data-mode="FORWARD" title="Track Velocity Vector [F]">FWD</button>
           <button class="cam-btn" data-mode="RETROGRADE" title="Track Opposite Velocity [R]">RETRO</button>
           <button class="cam-btn" data-mode="TARGET_LOCK" data-target="MARS" title="Lock Mars [M]">MARS</button>
           <button class="cam-btn" data-mode="TARGET_LOCK" data-target="EARTH" title="Lock Earth [E]">EARTH</button>
           <button class="cam-btn" data-mode="TARGET_LOCK" data-target="SUN" title="Lock Sun [S]">SUN</button>
           <button class="cam-btn" data-mode="FREE_LOOK" title="Interactive Mouse Drag Look [L]">FREE</button>
-          <span style="color: var(--cyan-dim); margin: 0 2px;">|</span>
+          <span style="color: var(--border-primary); margin: 0 2px;">|</span>
           <button id="dust-streaks-btn" class="cam-btn active" title="Toggle velocity streaks vs physically literal stationary dust [T]">STREAKS: ON</button>
         </div>
       </div>
@@ -622,7 +676,7 @@ function setupConsole(): void {
               <div class="telemetry-row"><span>Planned TOF:</span><span class="highlight-val">${simLoop.trajectory.tofDays} days</span></div>
               <div class="telemetry-row"><span>Transfer Trajectory:</span><span class="mono-val">Lambert Universal Variable</span></div>
               <div class="telemetry-row"><span>Subsystems Status:</span><span id="subsystems-status-val" class="mono-val">ACTIVE (≤ 600x)</span></div>
-              <div class="telemetry-row"><span>Tactical Viewport:</span><span class="mono-val" style="color: var(--green)">ACTIVE (CANVAS 2D)</span></div>
+              <div class="telemetry-row"><span>Tactical Viewport:</span><span class="mono-val" style="color: var(--nominal-text)">ACTIVE (CANVAS 2D)</span></div>
             </div>
           </div>
         </div>
@@ -993,18 +1047,35 @@ function setupConsole(): void {
     switchTab('SKY');
   }
 
-  // --- Left Panel: Multi-View Mission Consoles ---
+  // --- Left Activity Rail & Inspector Drawer ---
+  const activityRail = document.getElementById('activity-rail');
   const leftPanel = document.getElementById('left-panel');
-  if (leftPanel) {
+  if (activityRail && leftPanel) {
+    activityRail.innerHTML = `
+      <button class="rail-btn active" data-tab="COMMS" title="Deep-Space DTN Comms Console">
+        <span class="rail-icon">${ICONS.ArrowLeftRight}</span>
+        <span class="rail-label">DTN</span>
+      </button>
+      <button class="rail-btn" data-tab="AI" title="Autonomous Advisory & CDSS">
+        <span class="rail-icon">${ICONS.Cpu}</span>
+        <span class="rail-label">AI</span>
+      </button>
+      <button class="rail-btn" data-tab="MEM" title="Avionics Memory & SEU Scrubber">
+        <span class="rail-icon">${ICONS.HardDrive}</span>
+        <span class="rail-label">MEM</span>
+      </button>
+      <button class="rail-btn" data-tab="SCENARIOS" title="Guided Mission Scenarios S1-S5">
+        <span class="rail-icon">${ICONS.PlaySquare}</span>
+        <span class="rail-label">SCEN</span>
+      </button>
+      <button class="rail-btn" data-tab="EVAL" title="Automated Verification Suite">
+        <span class="rail-icon">${ICONS.Activity}</span>
+        <span class="rail-label">EVAL</span>
+      </button>
+    `;
+
     leftPanel.innerHTML = `
-      <div class="left-tabs">
-        <button class="left-tab-btn active" data-tab="COMMS" title="Deep-Space DTN Comms Console">📡 DTN</button>
-        <button class="left-tab-btn" data-tab="AI" title="Autonomous Advisory & CDSS">🤖 AI</button>
-        <button class="left-tab-btn" data-tab="MEM" title="Avionics Memory & SEU Scrubber">💾 MEM</button>
-        <button class="left-tab-btn" data-tab="SCENARIOS" title="Guided Mission Scenarios S1-S5">🚀 SCEN</button>
-        <button class="left-tab-btn" data-tab="EVAL" title="Automated Verification Suite">📊 EVAL</button>
-      </div>
-      <div id="left-tab-content" style="flex: 1; height: calc(100% - 32px); overflow: hidden; position: relative;">
+      <div id="left-tab-content" style="flex: 1; height: 100%; overflow: hidden; position: relative;">
         <div id="pane-comms" style="height: 100%;"></div>
         <div id="pane-ai" style="height: 100%; display: none;"></div>
         <div id="pane-mem" style="height: 100%; display: none;"></div>
@@ -1025,12 +1096,12 @@ function setupConsole(): void {
     scenarioRunner = new ScenarioRunner(paneScen, globalBus, simLoop, simLoop.subsystems.faultInjector, linkModel, dtnSpool, groundSegment);
     evalSuite = new EvalSuite(paneEval);
 
-    const leftBtns = leftPanel.querySelectorAll('.left-tab-btn');
+    const railBtns = activityRail.querySelectorAll('.rail-btn');
     const selectLeftTab = (t: string) => {
-      leftBtns.forEach(btn => {
+      railBtns.forEach(btn => {
         btn.classList.toggle('active', (btn as HTMLElement).dataset.tab === t);
       });
-      activeLeftTab = t as any;
+      activeLeftTab = t as 'COMMS' | 'AI' | 'MEM' | 'SCENARIOS' | 'EVAL';
       paneComms.style.display = t === 'COMMS' ? 'block' : 'none';
       paneAi.style.display = t === 'AI' ? 'block' : 'none';
       paneMem.style.display = t === 'MEM' ? 'block' : 'none';
@@ -1038,7 +1109,7 @@ function setupConsole(): void {
       paneEval.style.display = t === 'EVAL' ? 'block' : 'none';
     };
 
-    leftBtns.forEach((b) => {
+    railBtns.forEach((b) => {
       b.addEventListener('click', () => {
         const t = (b as HTMLElement).dataset.tab;
         if (t) selectLeftTab(t);

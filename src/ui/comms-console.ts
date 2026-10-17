@@ -5,8 +5,8 @@
  * Deep-Space Comms & Delay-Tolerant Networking (DTN) interface:
  * - Real-time link telemetry (OWLT, RTLT, theta, downlink/uplink rates)
  * - Solar conjunction blackout warnings (theta < 2.0 deg)
- * - Scenario Latency Override checkbox with prominent amber badge (SIM-05)
- * - 4-Priority Spool visualizer (P0, P1, P2, P3 counts & capacity bars)
+ * - Scenario Latency Override checkbox with amber badge (SIM-05)
+ * - 4-Priority Spool visualizer with 20-segment discrete LED-style arrays
  * - In-flight bundle pulse & propagation tracker
  * - Ground segment telemetry age ("DATA IS xx.x MIN OLD") & uplink queue
  */
@@ -61,28 +61,92 @@ export class CommsConsole {
         .comms-console-panel {
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          padding: 12px;
+          gap: 10px;
+          padding: 10px;
           height: 100%;
           overflow-y: auto;
           font-family: var(--font-mono);
           font-size: 11px;
           color: var(--text-primary);
-          background: rgba(10, 16, 26, 0.95);
+          background: var(--bg-panel);
         }
         .comms-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+          border-bottom: 1px solid var(--border-primary);
           padding-bottom: 6px;
         }
         .comms-title {
-          font-size: 13px;
+          font-family: var(--font-sans);
+          font-size: 11px;
           font-weight: 700;
-          color: var(--cyan);
-          letter-spacing: 1px;
+          color: var(--text-secondary);
+          letter-spacing: 0.08em;
           text-transform: uppercase;
+        }
+        .ground-banner {
+          background: var(--nominal-bg);
+          border: 1px solid var(--nominal-border);
+          border-radius: 4px;
+          padding: 6px 10px;
+          color: var(--nominal-text);
+          font-family: var(--font-mono);
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          text-align: center;
+        }
+        .override-card {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          background: var(--bg-card);
+          border: 1px solid var(--border-primary);
+          border-radius: 4px;
+          padding: 8px 10px;
+        }
+        .override-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .override-title-group {
+          display: flex;
+          flex-direction: column;
+        }
+        .override-title {
+          font-family: var(--font-sans);
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-primary);
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+        .override-sub {
+          font-size: 10px;
+          color: var(--text-muted);
+        }
+        .override-controls {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 2px;
+        }
+        .override-input {
+          width: 52px;
+          background: var(--bg-canvas);
+          color: var(--text-primary);
+          border: 1px solid var(--border-primary);
+          border-radius: 2px;
+          padding: 2px 6px;
+          font-family: var(--font-mono);
+          font-size: 11px;
+          font-weight: 600;
+        }
+        .override-input:focus {
+          border-color: var(--control-text);
+          outline: none;
         }
         .link-grid {
           display: grid;
@@ -90,117 +154,136 @@ export class CommsConsole {
           gap: 8px;
         }
         .link-card {
-          background: rgba(0, 0, 0, 0.4);
-          border: 1px solid rgba(0, 229, 255, 0.15);
+          background: var(--bg-card);
+          border: 1px solid var(--border-primary);
           border-radius: 4px;
-          padding: 8px;
+          padding: 8px 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
         }
         .link-card-label {
+          font-family: var(--font-sans);
           font-size: 9px;
-          color: var(--text-dim);
+          font-weight: 700;
+          color: var(--text-muted);
           text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 4px;
+          letter-spacing: 0.06em;
         }
         .link-card-val {
+          font-family: var(--font-mono);
           font-size: 14px;
           font-weight: 700;
-          color: var(--text-bright);
-        }
-        .override-box {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: rgba(255, 171, 0, 0.08);
-          border: 1px dashed rgba(255, 171, 0, 0.3);
-          border-radius: 4px;
-          padding: 8px 10px;
-        }
-        .amber-badge {
-          display: inline-block;
-          background: #ffab00;
-          color: #000;
-          font-weight: 800;
-          font-size: 9px;
-          padding: 2px 6px;
-          border-radius: 2px;
-          letter-spacing: 1px;
-        }
-        .ground-banner {
-          background: rgba(0, 230, 118, 0.08);
-          border: 1px solid rgba(0, 230, 118, 0.3);
-          border-radius: 4px;
-          padding: 8px 10px;
-          color: var(--green);
-          font-weight: 700;
-          text-align: center;
-          letter-spacing: 0.5px;
+          color: var(--text-primary);
+          font-variant-numeric: tabular-nums;
         }
         .spool-section {
           display: flex;
           flex-direction: column;
           gap: 6px;
+          background: var(--bg-card);
+          border: 1px solid var(--border-primary);
+          border-radius: 4px;
+          padding: 8px 10px;
+        }
+        .spool-section-title {
+          font-family: var(--font-sans);
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--text-secondary);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          border-bottom: 1px solid var(--border-subtle);
+          padding-bottom: 4px;
         }
         .spool-bar-row {
           display: flex;
           align-items: center;
           justify-content: space-between;
           font-size: 10px;
+          gap: 6px;
         }
-        .spool-progress {
-          width: 140px;
-          height: 6px;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 3px;
-          overflow: hidden;
+        .spool-label {
+          font-family: var(--font-mono);
+          font-size: 10px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          white-space: nowrap;
         }
-        .spool-progress-fill {
-          height: 100%;
-          border-radius: 3px;
-          transition: width 0.3s ease;
+        .led-bar-array {
+          display: flex;
+          gap: 2px;
+          align-items: center;
         }
-        .fill-p0 { background: var(--red); }
-        .fill-p1 { background: var(--amber); }
-        .fill-p2 { background: var(--cyan); }
-        .fill-p3 { background: var(--text-dim); }
+        .led-segment {
+          width: 5px;
+          height: 10px;
+          border-radius: 1px;
+          flex-shrink: 0;
+        }
+        .led-off {
+          background: var(--border-primary);
+        }
+        .led-p0 {
+          background: var(--critical-text);
+        }
+        .led-p1 {
+          background: var(--caution-text);
+        }
+        .led-p2 {
+          background: var(--control-text);
+        }
+        .led-p3 {
+          background: #64748B;
+        }
         .inflight-list {
           display: flex;
           flex-direction: column;
           gap: 4px;
-          max-height: 100px;
+          max-height: 120px;
           overflow-y: auto;
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid rgba(0, 229, 255, 0.1);
-          border-radius: 4px;
-          padding: 6px;
+          background: var(--bg-canvas);
+          border: 1px solid var(--border-primary);
+          border-radius: 2px;
+          padding: 4px;
         }
         .inflight-item {
           display: flex;
           justify-content: space-between;
+          align-items: center;
           padding: 3px 6px;
           border-radius: 2px;
-          background: rgba(255, 255, 255, 0.03);
+          background: var(--bg-card);
           font-size: 10px;
+          border: 1px solid var(--border-subtle);
         }
       </style>
 
       <div class="comms-header">
         <div class="comms-title">DEEP-SPACE COMMUNICATIONS / DTN</div>
-        <div id="comms-status-badge" class="badge">ACTIVE</div>
+        <div id="comms-status-badge" class="badge fidelity-high">NOMINAL</div>
       </div>
 
       <div class="ground-banner" id="ground-age-banner">
         DATA IS -- MIN OLD (AWAITING DOWNLINK)
       </div>
 
-      <div class="override-box">
-        <input type="checkbox" id="override-toggle" />
-        <label for="override-toggle" style="cursor: pointer; font-weight: 600;">
-          SCENARIO OVERRIDE: FORCE DELAY
-        </label>
-        <input type="number" id="override-mins" value="15" min="3" max="22" style="width: 45px; background: #000; color: #fff; border: 1px solid #ffab00; border-radius: 2px; padding: 2px 4px;" />
-        <span style="color: var(--text-dim);">min</span>
-        <span id="override-badge" class="amber-badge" style="display: none;">OVERRIDE ACTIVE</span>
+      <div class="override-card">
+        <div class="override-top">
+          <div class="override-title-group">
+            <span class="override-title">SCENARIO OVERRIDE</span>
+            <span class="override-sub">FORCE ARTIFICIAL LATENCY</span>
+          </div>
+          <span id="override-badge" class="badge synthetic-banner" style="display: none;">OVERRIDE ACTIVE</span>
+        </div>
+        <div class="override-controls">
+          <input type="checkbox" id="override-toggle" style="cursor: pointer; accent-color: var(--control-text);" />
+          <label for="override-toggle" style="cursor: pointer; font-size: 11px; font-weight: 500; color: var(--text-secondary);">
+            Enable Forced Delay:
+          </label>
+          <input type="number" id="override-mins" class="override-input" value="15" min="3" max="22" />
+          <span style="color: var(--text-muted); font-size: 10px;">min</span>
+        </div>
       </div>
 
       <div class="link-grid">
@@ -223,20 +306,20 @@ export class CommsConsole {
       </div>
 
       <div class="spool-section">
-        <div style="font-weight: 700; color: var(--cyan); margin-bottom: 2px;">
+        <div class="spool-section-title">
           TRANSMISSION PRIORITY SPOOL (PERSISTENT IDB)
         </div>
-        <div id="spool-bars">
-          <!-- Filled dynamically -->
+        <div id="spool-bars" style="display: flex; flex-direction: column; gap: 6px;">
+          <!-- Filled dynamically with 20-segment discrete LED bars -->
         </div>
       </div>
 
       <div class="spool-section">
-        <div style="font-weight: 700; color: var(--cyan); margin-bottom: 2px;">
+        <div class="spool-section-title">
           IN-FLIGHT PROPAGATION PIPELINE
         </div>
         <div class="inflight-list" id="inflight-list">
-          <div style="color: var(--text-dim); text-align: center; padding: 4px;">No bundles currently in flight</div>
+          <div style="color: var(--text-muted); text-align: center; padding: 4px;">No bundles currently in flight</div>
         </div>
       </div>
     `;
@@ -258,7 +341,7 @@ export class CommsConsole {
       const active = this.overrideCheckbox.checked;
       const mins = parseFloat(this.overrideMinutesInput.value) || 15;
       this.linkModel.setLatencyOverride(active, mins);
-      this.overrideBadge.style.display = active ? 'inline-block' : 'none';
+      this.overrideBadge.style.display = active ? 'inline-flex' : 'none';
     });
 
     this.overrideMinutesInput.addEventListener('input', () => {
@@ -269,6 +352,17 @@ export class CommsConsole {
     });
   }
 
+  private _renderLedSegments(count: number, maxCount: number, ledClass: string): string {
+    const totalSegments = 20;
+    const activeSegments = Math.min(totalSegments, Math.round((count / maxCount) * totalSegments));
+    let html = `<div class="led-bar-array">`;
+    for (let i = 0; i < totalSegments; i++) {
+      html += `<div class="led-segment ${i < activeSegments ? ledClass : 'led-off'}"></div>`;
+    }
+    html += `</div>`;
+    return html;
+  }
+
   /**
    * Updates display values from simulation tick.
    */
@@ -276,17 +370,25 @@ export class CommsConsole {
     // 1. Status badge
     this.statusBadge.textContent = linkState.status;
     if (linkState.status === 'BLACKOUT') {
-      this.statusBadge.style.background = 'var(--red)';
-      this.statusBadge.style.color = '#fff';
+      this.statusBadge.className = 'badge';
+      this.statusBadge.style.background = 'var(--critical-bg)';
+      this.statusBadge.style.borderColor = 'var(--critical-border)';
+      this.statusBadge.style.color = 'var(--critical-text)';
     } else if (linkState.status === 'DEGRADED') {
-      this.statusBadge.style.background = 'var(--amber)';
-      this.statusBadge.style.color = '#000';
+      this.statusBadge.className = 'badge synthetic-banner';
+      this.statusBadge.style.background = 'var(--caution-bg)';
+      this.statusBadge.style.borderColor = 'var(--caution-border)';
+      this.statusBadge.style.color = 'var(--caution-text)';
     } else if (linkState.status === 'OVERRIDE') {
-      this.statusBadge.style.background = '#ffab00';
-      this.statusBadge.style.color = '#000';
+      this.statusBadge.className = 'badge synthetic-banner';
+      this.statusBadge.style.background = 'var(--caution-bg)';
+      this.statusBadge.style.borderColor = 'var(--caution-border)';
+      this.statusBadge.style.color = 'var(--caution-text)';
     } else {
-      this.statusBadge.style.background = 'rgba(0, 230, 118, 0.2)';
-      this.statusBadge.style.color = 'var(--green)';
+      this.statusBadge.className = 'badge fidelity-high';
+      this.statusBadge.style.background = 'var(--nominal-bg)';
+      this.statusBadge.style.borderColor = 'var(--nominal-border)';
+      this.statusBadge.style.color = 'var(--nominal-text)';
     }
 
     // 2. Metrics
@@ -298,27 +400,27 @@ export class CommsConsole {
     // 3. Ground telemetry age
     this.groundAgeEl.textContent = this.groundSegment.getTelemetryAgeString(currentSimTime);
 
-    // 4. Spool bars
+    // 4. 20-segment discrete LED spool bars
     const stats = this.spool.getStats();
     const maxB = 50; // Visual scale factor
     this.spoolBarsEl.innerHTML = `
       <div class="spool-bar-row">
-        <span>P0: CRITICAL (FDIR) [${stats.p0Count}]</span>
-        <div class="spool-progress"><div class="spool-progress-fill fill-p0" style="width: ${Math.min(100, (stats.p0Count / maxB) * 100)}%;"></div></div>
+        <span class="spool-label">P0: CRITICAL (FDIR) [${stats.p0Count}]</span>
+        ${this._renderLedSegments(stats.p0Count, maxB, 'led-p0')}
       </div>
       <div class="spool-bar-row">
-        <span>P1: TELEMETRY (HEALTH) [${stats.p1Count}]</span>
-        <div class="spool-progress"><div class="spool-progress-fill fill-p1" style="width: ${Math.min(100, (stats.p1Count / maxB) * 100)}%;"></div></div>
+        <span class="spool-label">P1: TELEMETRY (HEALTH) [${stats.p1Count}]</span>
+        ${this._renderLedSegments(stats.p1Count, maxB, 'led-p1')}
       </div>
       <div class="spool-bar-row">
-        <span>P2: SCIENCE (ROUTINE) [${stats.p2Count}]</span>
-        <div class="spool-progress"><div class="spool-progress-fill fill-p2" style="width: ${Math.min(100, (stats.p2Count / maxB) * 100)}%;"></div></div>
+        <span class="spool-label">P2: SCIENCE (ROUTINE) [${stats.p2Count}]</span>
+        ${this._renderLedSegments(stats.p2Count, maxB, 'led-p2')}
       </div>
       <div class="spool-bar-row">
-        <span>P3: BULK (FILES) [${stats.p3Count}]</span>
-        <div class="spool-progress"><div class="spool-progress-fill fill-p3" style="width: ${Math.min(100, (stats.p3Count / maxB) * 100)}%;"></div></div>
+        <span class="spool-label">P3: BULK (FILES) [${stats.p3Count}]</span>
+        ${this._renderLedSegments(stats.p3Count, maxB, 'led-p3')}
       </div>
-      <div style="font-size: 9px; color: var(--text-dim); margin-top: 4px; display: flex; justify-content: space-between;">
+      <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between; font-family: var(--font-mono);">
         <span>TOTAL: ${stats.totalBundles} (${(stats.totalBytes / 1024).toFixed(1)} KB)</span>
         <span>DROPPED: ${stats.droppedCount}</span>
       </div>
@@ -327,15 +429,15 @@ export class CommsConsole {
     // 5. In-flight bundles
     const inFlight = this.linkModel.getInFlightBundles();
     if (inFlight.length === 0) {
-      this.inFlightListEl.innerHTML = `<div style="color: var(--text-dim); text-align: center; padding: 4px;">No bundles currently in flight</div>`;
+      this.inFlightListEl.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 4px;">No bundles currently in flight</div>`;
     } else {
       this.inFlightListEl.innerHTML = inFlight.slice(0, 5).map(item => {
         const remaining = Math.max(0, item.arrivalSimTime - currentSimTime);
         const progress = Math.min(100, Math.max(0, ((currentSimTime - item.departureSimTime) / item.oneWayDelaySec) * 100));
         return `
           <div class="inflight-item">
-            <span>[P${item.bundle.header.priority}] ${item.bundle.header.payloadType} (${item.direction === 'downlink' ? '▼ TO EARTH' : '▲ TO SHIP'})</span>
-            <span>${remaining.toFixed(0)}s left (${progress.toFixed(0)}%)</span>
+            <span style="font-weight: 500;">[P${item.bundle.header.priority}] ${item.bundle.header.payloadType} (${item.direction === 'downlink' ? '▼ TO EARTH' : '▲ TO SHIP'})</span>
+            <span style="font-family: var(--font-mono); font-weight: 600; color: var(--text-secondary);">${remaining.toFixed(0)}s left (${progress.toFixed(0)}%)</span>
           </div>
         `;
       }).join('');

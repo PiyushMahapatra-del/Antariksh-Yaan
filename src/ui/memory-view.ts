@@ -41,31 +41,90 @@ export class MemoryView {
         .memory-view-panel {
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          padding: 12px;
+          gap: 10px;
+          padding: 10px;
           height: 100%;
           overflow-y: auto;
           font-family: var(--font-mono);
           font-size: 11px;
           color: var(--text-primary);
-          background: rgba(10, 16, 26, 0.95);
+          background: var(--bg-panel);
         }
         .mem-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+          border-bottom: 1px solid var(--border-primary);
           padding-bottom: 6px;
         }
         .mem-title {
-          font-size: 13px;
+          font-family: var(--font-sans);
+          font-size: 11px;
           font-weight: 700;
-          color: var(--cyan);
-          letter-spacing: 1px;
+          color: var(--text-secondary);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .scrubber-controls {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          background: var(--bg-card);
+          border: 1px solid var(--border-primary);
+          border-radius: 4px;
+          padding: 8px 10px;
+        }
+        .scrubber-buttons-row {
+          display: flex;
+          gap: 6px;
+        }
+        .mem-btn {
+          flex: 1;
+          padding: 4px 6px;
+          font-family: var(--font-mono);
+          font-size: 10px;
+          font-weight: 600;
+          cursor: pointer;
+          border-radius: 2px;
+          text-align: center;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+        }
+        .btn-steel {
+          background: var(--control-bg);
+          border: 1px solid var(--control-border);
+          color: var(--control-text);
+        }
+        .btn-steel:hover {
+          background: rgba(56, 189, 248, 0.25);
+        }
+        .btn-destructive {
+          background: var(--critical-bg);
+          border: 1px solid var(--critical-border);
+          color: var(--critical-text);
+        }
+        .btn-destructive:hover {
+          background: rgba(239, 68, 68, 0.25);
+        }
+        .btn-amber {
+          background: var(--caution-bg);
+          border: 1px solid var(--caution-border);
+          color: var(--caution-text);
+        }
+        .btn-amber:hover {
+          background: rgba(245, 158, 11, 0.25);
+        }
+        .scrubber-status-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 10px;
+          padding-top: 4px;
+          border-top: 1px solid var(--border-subtle);
         }
         .mem-region-card {
-          background: rgba(0, 0, 0, 0.4);
-          border: 1px solid rgba(0, 229, 255, 0.15);
+          background: var(--bg-card);
+          border: 1px solid var(--border-primary);
           border-radius: 4px;
           padding: 8px 10px;
           display: flex;
@@ -78,21 +137,27 @@ export class MemoryView {
           align-items: center;
         }
         .mem-region-name {
+          font-family: var(--font-sans);
+          font-size: 10px;
           font-weight: 700;
-          color: var(--cyan);
+          color: var(--text-secondary);
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
         }
         .mem-meta {
           font-size: 10px;
-          color: var(--text-dim);
+          color: var(--text-muted);
+          line-height: 1.3;
         }
-        .scrubber-controls {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: rgba(0, 229, 255, 0.05);
-          border: 1px solid rgba(0, 229, 255, 0.2);
-          border-radius: 4px;
-          padding: 8px 10px;
+        .mem-details-box {
+          font-size: 10px;
+          color: var(--text-primary);
+          background: var(--bg-canvas);
+          border: 1px solid var(--border-subtle);
+          border-radius: 2px;
+          padding: 4px 6px;
+          margin-top: 2px;
+          line-height: 1.3;
         }
       </style>
 
@@ -102,71 +167,76 @@ export class MemoryView {
       </div>
 
       <div class="scrubber-controls">
-        <button id="toggle-scrubber-btn" class="search-btn" style="padding: 4px 10px; font-size: 10px;">
-          TOGGLE SEU SCRUBBER
-        </button>
-        <button id="inject-bitflip-btn" class="arm-btn" style="padding: 4px 10px; font-size: 10px; color: var(--red); border-color: var(--red);">
-          INJECT BIT-FLIP (SEU)
-        </button>
-        <button id="swap-r2-btn" class="search-btn" style="padding: 4px 10px; font-size: 10px; color: var(--amber); border-color: var(--amber);">
-          PING-PONG A/B SWAP
-        </button>
-        <div id="scrubber-status" style="margin-left: auto; font-size: 10px; color: var(--green);">
-          SCRUBBER: ACTIVE (100 Hz)
+        <div class="scrubber-buttons-row">
+          <button id="toggle-scrubber-btn" class="mem-btn btn-steel">
+            TOGGLE SCRUBBER
+          </button>
+          <button id="inject-bitflip-btn" class="mem-btn btn-destructive">
+            INJECT BIT-FLIP
+          </button>
+          <button id="swap-r2-btn" class="mem-btn btn-amber">
+            A/B SWAP
+          </button>
+        </div>
+        <div class="scrubber-status-row">
+          <span style="color: var(--text-muted);">MONITOR STATE:</span>
+          <span id="scrubber-status" style="font-weight: 600; color: var(--nominal-text);">
+            SCRUBBER: ACTIVE (100 Hz)
+          </span>
         </div>
       </div>
 
       <div class="mem-region-card">
         <div class="mem-region-top">
-          <span class="mem-region-name">R0: GOLDEN ROM (IMMUTABLE)</span>
-          <span class="badge" style="background: rgba(0, 230, 118, 0.2); color: var(--green);">HARDENED</span>
+          <span class="mem-region-name">R0: GOLDEN ROM (0x0000 - 0x1FFF)</span>
+          <span class="badge fidelity-high">HARDENED</span>
         </div>
         <div class="mem-meta">Physical Constants, Kepler J2000 Ephemerides, Actuator Hard Limits, ECDSA Public Keys</div>
-        <div id="r0-details" style="font-size: 10px; color: var(--text-bright); margin-top: 2px;">
+        <div id="r0-details" class="mem-details-box">
           Status: 100% Integrity verified (SHA-256: 0x9f83...bc41)
         </div>
       </div>
 
       <div class="mem-region-card">
         <div class="mem-region-top">
-          <span class="mem-region-name">R1: PERSISTENT AUDIT LOG (APPEND-ONLY)</span>
-          <span class="badge" style="background: rgba(0, 229, 255, 0.2); color: var(--cyan);">CHAINED HASH</span>
+          <span class="mem-region-name">R1: PERSISTENT AUDIT LOG (0x2000 - 0x3FFF)</span>
+          <span class="badge" style="background: var(--control-bg); color: var(--control-text); border: 1px solid var(--control-border);">CHAINED HASH</span>
         </div>
         <div class="mem-meta">Immutable telemetry flight recorder & safety gate execution log (IndexedDB backed)</div>
-        <div id="r1-details" style="font-size: 10px; color: var(--text-bright); margin-top: 2px;">
+        <div id="r1-details" class="mem-details-box">
           Total Recorded Blocks: 142 | Latest Chain Hash: 0xa4c1...8e29
         </div>
       </div>
 
       <div class="mem-region-card">
         <div class="mem-region-top">
-          <span class="mem-region-name">LIB: SIGNED LIBRARY (READ-ONLY)</span>
-          <span class="badge" style="background: rgba(255, 171, 0, 0.2); color: var(--amber);">VERIFIED</span>
+          <span class="mem-region-name">LIB: SIGNED LIBRARY (0x4000 - 0x7FFF)</span>
+          <span class="badge synthetic-banner">VERIFIED</span>
         </div>
         <div class="mem-meta">Random Forest model weights, BM25 knowledge graph, Synthetic Formulary</div>
-        <div id="lib-details" style="font-size: 10px; color: var(--text-bright); margin-top: 2px;">
+        <div id="lib-details" class="mem-details-box">
           Modules: rf_thermal.bin (25 trees), kg_procedures.json (12 procs), formulary.json (4 drugs)
         </div>
       </div>
 
       <div class="mem-region-card">
         <div class="mem-region-top">
-          <span class="mem-region-name">R2: PHASE WORKING SET A/B (PING-PONG)</span>
-          <span class="badge" id="r2-active-badge" style="background: rgba(0, 229, 255, 0.2); color: var(--cyan);">BUFFER A ACTIVE</span>
+          <span class="mem-region-name">R2: WORKING SET A/B (0x8000 - 0xBFFF)</span>
+          <span class="badge phase-badge" id="r2-active-badge">BUFFER A ACTIVE</span>
         </div>
         <div class="mem-meta">Mission phase parameters, guidance targets, CDSS differential working buffers</div>
-        <div id="r2-details" style="font-size: 10px; color: var(--text-bright); margin-top: 2px;">
+        <div id="r2-details" class="mem-details-box">
           Buffer A: Cruise State Vector | Buffer B: Standby (Prepared for Mars Orbit Insertion)
         </div>
       </div>
 
       <div class="mem-region-card">
         <div class="mem-region-top">
-          <span class="mem-region-name">R3: SCRATCHPAD MEMORY (CIRCULAR RINGBUFFERS)</span>
-          <span class="badge" style="background: rgba(255, 255, 255, 0.1); color: var(--text-dim);">EPHEMERAL</span>
+          <span class="mem-region-name">R3: SCRATCHPAD MEMORY (0xC000 - 0xFFFF)</span>
+          <span class="badge" style="background: var(--bg-hover); color: var(--text-muted); border: 1px solid var(--border-primary);">EPHEMERAL</span>
         </div>
         <div class="mem-meta">High-frequency telemetry ring buffers (0 GC allocation overhead during rendering)</div>
-        <div id="r3-details" style="font-size: 10px; color: var(--text-bright); margin-top: 2px;">
+        <div id="r3-details" class="mem-details-box">
           Sparkline Circular Buffers: 8 channels @ 300 samples capacity (100% active, 0 drops)
         </div>
       </div>
@@ -186,18 +256,18 @@ export class MemoryView {
     toggleScrubberBtn.addEventListener('click', () => {
       scrubberActive = !scrubberActive;
       this.scrubberStatusEl.textContent = scrubberActive ? 'SCRUBBER: ACTIVE (100 Hz)' : 'SCRUBBER: PAUSED';
-      this.scrubberStatusEl.style.color = scrubberActive ? 'var(--green)' : 'var(--amber)';
+      this.scrubberStatusEl.style.color = scrubberActive ? 'var(--nominal-text)' : 'var(--caution-text)';
     });
 
     injectBitflipBtn.addEventListener('click', () => {
       const bitFlipResult = this.memManager.injectBitFlip('lib_thermal_model');
       if (bitFlipResult) {
         this.libEl.textContent = '⚠ SEU DETECTED: Bit-flip in lib_thermal_model. Scrubber auto-correcting via golden checksum.';
-        this.libEl.style.color = 'var(--red)';
+        this.libEl.style.color = 'var(--critical-text)';
         setTimeout(() => {
           this.memManager.scrubForSEU();
           this.libEl.textContent = '✓ SEU REPAIRED: Clean module reloaded from golden flash image.';
-          this.libEl.style.color = 'var(--green)';
+          this.libEl.style.color = 'var(--nominal-text)';
         }, 1200);
       }
     });

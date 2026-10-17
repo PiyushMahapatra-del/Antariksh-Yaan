@@ -139,80 +139,140 @@ export class ScenarioRunner {
         .scenario-runner-panel {
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          padding: 12px;
+          gap: 10px;
+          padding: 10px;
           height: 100%;
           overflow-y: auto;
           font-family: var(--font-mono);
           font-size: 11px;
           color: var(--text-primary);
-          background: rgba(10, 16, 26, 0.95);
+          background: var(--bg-panel);
         }
         .scen-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+          border-bottom: 1px solid var(--border-primary);
           padding-bottom: 6px;
         }
         .scen-title {
-          font-size: 13px;
+          font-family: var(--font-sans);
+          font-size: 11px;
           font-weight: 700;
-          color: var(--cyan);
-          letter-spacing: 1px;
+          color: var(--text-secondary);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
         }
         .scen-selector {
           display: flex;
-          gap: 4px;
+          gap: 3px;
+          background: var(--bg-card);
+          padding: 3px;
+          border-radius: 4px;
+          border: 1px solid var(--border-primary);
         }
         .scen-btn {
           flex: 1;
-          padding: 6px;
-          background: rgba(0, 0, 0, 0.5);
-          border: 1px solid rgba(0, 229, 255, 0.2);
-          color: var(--text-dim);
+          padding: 4px 2px;
+          background: transparent;
+          border: 1px solid transparent;
+          color: var(--text-muted);
           font-family: var(--font-mono);
           font-size: 10px;
-          font-weight: 700;
+          font-weight: 600;
           cursor: pointer;
-          border-radius: 3px;
-          transition: all 0.2s ease;
+          border-radius: 2px;
+          text-align: center;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+        }
+        .scen-btn:hover {
+          color: var(--text-primary);
         }
         .scen-btn.active {
-          background: rgba(0, 229, 255, 0.2);
-          border-color: var(--cyan);
-          color: var(--cyan);
-          text-shadow: var(--glow-cyan);
+          background: var(--control-bg);
+          border-color: var(--control-border);
+          color: var(--control-text);
+          font-weight: 700;
+        }
+        .scen-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border-primary);
+          border-radius: 4px;
+          padding: 8px 10px;
+        }
+        .scen-section-title {
+          font-family: var(--font-sans);
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--text-secondary);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          margin-top: 4px;
         }
         .step-item {
           display: flex;
           align-items: flex-start;
-          gap: 8px;
-          padding: 6px 8px;
-          border-radius: 3px;
-          background: rgba(0, 0, 0, 0.3);
+          gap: 6px;
+          padding: 5px 8px;
+          border-radius: 2px;
+          background: var(--bg-canvas);
+          border: 1px solid var(--border-subtle);
           margin-bottom: 4px;
+          font-size: 10px;
         }
         .step-item.current {
-          border-left: 3px solid var(--amber);
-          background: rgba(255, 171, 0, 0.08);
+          border-left: 2px solid var(--caution-text);
+          background: var(--caution-bg);
         }
         .step-item.done {
-          border-left: 3px solid var(--green);
-          opacity: 0.7;
+          border-left: 2px solid var(--nominal-text);
+          background: var(--nominal-bg);
+          opacity: 0.85;
         }
         .narrative-box {
-          background: rgba(0, 229, 255, 0.05);
-          border: 1px solid rgba(0, 229, 255, 0.2);
+          background: var(--bg-canvas);
+          border: 1px solid var(--border-primary);
           border-radius: 4px;
-          padding: 10px;
-          min-height: 50px;
+          padding: 8px 10px;
+          min-height: 48px;
           line-height: 1.4;
-          color: var(--text-bright);
+          color: var(--text-primary);
+          font-family: var(--font-mono);
+          font-size: 10px;
         }
         .scen-actions {
           display: flex;
-          gap: 10px;
+          gap: 8px;
+        }
+        .scen-action-btn {
+          font-family: var(--font-mono);
+          font-size: 10px;
+          font-weight: 600;
+          padding: 6px 12px;
+          border-radius: 2px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .btn-exec {
+          flex: 2;
+          background: var(--control-bg);
+          border: 1px solid var(--control-border);
+          color: var(--control-text);
+          font-weight: 700;
+        }
+        .btn-exec:hover {
+          background: rgba(56, 189, 248, 0.25);
+        }
+        .btn-reset {
+          flex: 1;
+          background: var(--bg-card);
+          border: 1px solid var(--border-primary);
+          color: var(--text-secondary);
+        }
+        .btn-reset:hover {
+          background: var(--bg-hover);
+          color: var(--text-primary);
         }
       </style>
 
@@ -229,25 +289,25 @@ export class ScenarioRunner {
         <button class="scen-btn" data-idx="4">S5: MOI CAPTURE</button>
       </div>
 
-      <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(0,229,255,0.15); border-radius: 4px; padding: 10px;">
-        <div id="scen-active-title" style="font-weight: 700; color: var(--amber); font-size: 12px; margin-bottom: 4px;"></div>
-        <div id="scen-active-summary" style="color: var(--text-dim); font-size: 10px; line-height: 1.3;"></div>
+      <div class="scen-card">
+        <div id="scen-active-title" style="font-weight: 700; color: var(--caution-text); font-size: 11px; margin-bottom: 4px; text-transform: uppercase;"></div>
+        <div id="scen-active-summary" style="color: var(--text-muted); font-size: 10px; line-height: 1.3;"></div>
       </div>
 
-      <div style="font-weight: 700; color: var(--cyan); margin-top: 4px;">SCENARIO PROCEDURE STEPS</div>
+      <div class="scen-section-title">SCENARIO PROCEDURE STEPS</div>
       <div id="scen-steps-list"></div>
 
-      <div style="font-weight: 700; color: var(--cyan); margin-top: 4px;">MISSION CONTROLLER NARRATIVE</div>
+      <div class="scen-section-title">MISSION CONTROLLER NARRATIVE</div>
       <div class="narrative-box" id="scen-narrative">
-        Click "BEGIN / EXECUTE STEP" to step through the guided aerospace verification scenario.
+        Click "EXECUTE STEP" to step through the guided aerospace verification scenario.
       </div>
 
       <div class="scen-actions">
-        <button id="scen-next-btn" class="search-btn" style="flex: 2; padding: 8px;">
-          BEGIN / EXECUTE STEP ▶
+        <button id="scen-next-btn" class="scen-action-btn btn-exec">
+          EXECUTE STEP ▶
         </button>
-        <button id="scen-reset-btn" class="arm-btn" style="flex: 1; padding: 8px;">
-          RESET SCENARIO
+        <button id="scen-reset-btn" class="scen-action-btn btn-reset">
+          RESET
         </button>
       </div>
     `;

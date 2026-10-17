@@ -21,3 +21,4 @@ export * from './ai-console.js';
 export * from './memory-view.js';
 export * from './scenario-runner.js';
 export * from './eval-suite.js';
+export * from './icons.js';

@@ -4,6 +4,8 @@
  * SIMULATION: NOT FLIGHT SOFTWARE
  * Interactive anomaly injection interface for testing subsystem resilience,
  * flight software safety gates, and AI diagnostic proposals.
+ * 
+ * Refactored to High-Density 2-Column Industrial Data Table (NASA Open MCT / SpaceX style).
  */
 
 import { FaultInjector, FAULT_CATALOG, type FaultType } from '../sim/faults.js';
@@ -37,47 +39,66 @@ export class FaultPanel {
           </div>
           <div class="fault-controls">
             <button id="fault-clear-all-btn" class="fault-action-btn clear-all-btn" title="Clear all active simulated faults">
-              CLEAR ALL FAULTS
+              [ CLEAR ALL FAULTS ]
             </button>
           </div>
         </div>
-        <div class="fault-grid"></div>
+        <div class="fault-split-container">
+          <div class="fault-col" id="fault-col-0">
+            <div class="fault-table-head">
+              <span class="th-item">ITEM</span>
+              <span class="th-sub">CATEGORY</span>
+              <span class="th-status">STATUS</span>
+              <span class="th-action">ACTION</span>
+            </div>
+            <div class="fault-rows-group" id="fault-rows-0"></div>
+          </div>
+          <div class="fault-col" id="fault-col-1">
+            <div class="fault-table-head">
+              <span class="th-item">ITEM</span>
+              <span class="th-sub">CATEGORY</span>
+              <span class="th-status">STATUS</span>
+              <span class="th-action">ACTION</span>
+            </div>
+            <div class="fault-rows-group" id="fault-rows-1"></div>
+          </div>
+        </div>
       </div>
     `;
 
     this.countBadge = this.container.querySelector('#fault-active-count');
-    const grid = this.container.querySelector('.fault-grid') as HTMLElement;
+    const rows0 = this.container.querySelector('#fault-rows-0') as HTMLElement;
+    const rows1 = this.container.querySelector('#fault-rows-1') as HTMLElement;
 
-    for (const item of FAULT_CATALOG) {
-      const card = document.createElement('div');
-      card.className = 'fault-card';
-      card.dataset.faultType = item.type;
+    const mid = Math.ceil(FAULT_CATALOG.length / 2);
 
-      const topRow = document.createElement('div');
-      topRow.className = 'fault-card-top';
+    FAULT_CATALOG.forEach((item, index) => {
+      const targetGroup = index < mid ? rows0 : rows1;
 
+      const row = document.createElement('div');
+      row.className = 'fault-row';
+      row.dataset.faultType = item.type;
+
+      // Item Name
       const nameSpan = document.createElement('span');
       nameSpan.className = 'fault-name';
       nameSpan.textContent = item.name;
       nameSpan.title = item.description;
 
+      // Subsystem Category
       const subBadge = document.createElement('span');
       subBadge.className = 'fault-subsystem-badge';
       subBadge.textContent = item.subsystem.toUpperCase();
 
-      topRow.appendChild(nameSpan);
-      topRow.appendChild(subBadge);
-
-      const bottomRow = document.createElement('div');
-      bottomRow.className = 'fault-card-bottom';
-
+      // Status Badge
       const statusBadge = document.createElement('span');
       statusBadge.className = 'fault-status-badge status-inactive';
       statusBadge.textContent = 'INACTIVE';
 
+      // Action Button
       const toggleBtn = document.createElement('button');
       toggleBtn.className = 'fault-toggle-btn btn-inject';
-      toggleBtn.textContent = 'INJECT';
+      toggleBtn.textContent = '[ INJECT ]';
 
       toggleBtn.addEventListener('click', () => {
         if (this.injector.isActive(item.type)) {
@@ -89,15 +110,15 @@ export class FaultPanel {
         this.updateHeaderCount();
       });
 
-      bottomRow.appendChild(statusBadge);
-      bottomRow.appendChild(toggleBtn);
+      row.appendChild(nameSpan);
+      row.appendChild(subBadge);
+      row.appendChild(statusBadge);
+      row.appendChild(toggleBtn);
 
-      card.appendChild(topRow);
-      card.appendChild(bottomRow);
-      grid.appendChild(card);
+      targetGroup.appendChild(row);
 
-      this.buttonElements.set(item.type, { card, statusBadge, toggleBtn });
-    }
+      this.buttonElements.set(item.type, { card: row, statusBadge, toggleBtn });
+    });
 
     const clearAllBtn = this.container.querySelector('#fault-clear-all-btn');
     if (clearAllBtn) {
@@ -133,17 +154,17 @@ export class FaultPanel {
 
     const isActive = this.injector.isActive(type);
     if (isActive) {
-      els.card.classList.add('fault-card-active');
+      els.card.classList.add('fault-row-active');
       els.statusBadge.className = 'fault-status-badge status-active';
       els.statusBadge.textContent = 'ACTIVE';
       els.toggleBtn.className = 'fault-toggle-btn btn-clear';
-      els.toggleBtn.textContent = 'CLEAR';
+      els.toggleBtn.textContent = '[ CLEAR ]';
     } else {
-      els.card.classList.remove('fault-card-active');
+      els.card.classList.remove('fault-row-active');
       els.statusBadge.className = 'fault-status-badge status-inactive';
       els.statusBadge.textContent = 'INACTIVE';
       els.toggleBtn.className = 'fault-toggle-btn btn-inject';
-      els.toggleBtn.textContent = 'INJECT';
+      els.toggleBtn.textContent = '[ INJECT ]';
     }
   }
 
@@ -153,13 +174,15 @@ export class FaultPanel {
     if (count > 0) {
       this.countBadge.textContent = `${count} FAULT${count > 1 ? 'S' : ''} ACTIVE`;
       this.countBadge.className = 'badge';
-      this.countBadge.style.background = 'var(--red)';
-      this.countBadge.style.color = '#fff';
+      this.countBadge.style.background = 'var(--critical-bg)';
+      this.countBadge.style.borderColor = 'var(--critical-border)';
+      this.countBadge.style.color = 'var(--critical-text)';
     } else {
       this.countBadge.textContent = '0 FAULTS ACTIVE';
       this.countBadge.className = 'badge fidelity-high';
-      this.countBadge.style.background = 'var(--green)';
-      this.countBadge.style.color = '#000';
+      this.countBadge.style.background = 'var(--nominal-bg)';
+      this.countBadge.style.borderColor = 'var(--nominal-border)';
+      this.countBadge.style.color = 'var(--nominal-text)';
     }
   }
 
@@ -174,15 +197,17 @@ export class FaultPanel {
         flex-direction: column;
         height: 100%;
         overflow: hidden;
+        background: var(--bg-panel);
       }
       .fault-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 4px 10px;
+        padding: 6px 12px;
         background: var(--bg-panel);
-        border-bottom: var(--border);
-        min-height: 28px;
+        border-bottom: 1px solid var(--border-primary);
+        min-height: 30px;
+        flex-shrink: 0;
       }
       .fault-title-group {
         display: flex;
@@ -190,128 +215,146 @@ export class FaultPanel {
         gap: 8px;
       }
       .fault-title {
-        font-family: var(--font-mono);
+        font-family: var(--font-sans);
         font-size: 11px;
         font-weight: 700;
-        color: var(--cyan);
-        letter-spacing: 1px;
+        color: var(--text-secondary);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
-      .fault-grid {
+      .fault-split-container {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-        gap: 6px;
-        padding: 6px 10px;
-        overflow-y: auto;
+        grid-template-columns: 1fr 1fr;
         flex: 1;
+        overflow: hidden;
       }
-      .fault-card {
-        background: rgba(14, 20, 28, 0.7);
-        border: 1px solid rgba(0, 229, 255, 0.2);
-        border-radius: 3px;
-        padding: 5px 8px;
+      .fault-col {
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        gap: 4px;
-        transition: border-color 0.2s, background-color 0.2s;
+        overflow: hidden;
       }
-      .fault-card:hover {
-        border-color: rgba(0, 229, 255, 0.5);
+      .fault-col:first-child {
+        border-right: 1px solid var(--border-primary);
       }
-      .fault-card-active {
-        background: rgba(255, 23, 68, 0.12) !important;
-        border-color: var(--red) !important;
-        box-shadow: 0 0 6px rgba(255, 23, 68, 0.4);
-      }
-      .fault-card-top {
-        display: flex;
-        justify-content: space-between;
+      .fault-table-head {
+        display: grid;
+        grid-template-columns: 1fr 85px 70px 75px;
         align-items: center;
-        gap: 4px;
+        padding: 4px 10px;
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border-primary);
+        font-family: var(--font-sans);
+        font-size: 9px;
+        font-weight: 700;
+        color: var(--text-muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        flex-shrink: 0;
+      }
+      .fault-rows-group {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        overflow-y: auto;
+      }
+      .fault-row {
+        display: grid;
+        grid-template-columns: 1fr 85px 70px 75px;
+        align-items: center;
+        height: 28px;
+        min-height: 28px;
+        padding: 0 10px;
+        border-bottom: 1px solid var(--border-subtle);
+        transition: background 0.12s ease;
+      }
+      .fault-row:hover {
+        background: var(--bg-hover);
+      }
+      .fault-row-active {
+        background: var(--critical-bg) !important;
+        border-left: 2px solid var(--critical-text);
       }
       .fault-name {
         font-family: var(--font-mono);
-        font-size: 10px;
-        font-weight: 600;
+        font-size: 11px;
+        font-weight: 500;
         color: var(--text-primary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        padding-right: 8px;
       }
       .fault-subsystem-badge {
         font-family: var(--font-mono);
-        font-size: 8px;
-        color: var(--cyan);
-        background: rgba(0, 229, 255, 0.1);
-        border: 1px solid rgba(0, 229, 255, 0.3);
-        padding: 0 3px;
+        font-size: 9px;
+        font-weight: 600;
+        color: var(--text-muted);
+        background: var(--bg-card);
+        border: 1px solid var(--border-primary);
+        padding: 1px 4px;
         border-radius: 2px;
-        white-space: nowrap;
-      }
-      .fault-card-bottom {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        display: inline-block;
+        width: fit-content;
+        letter-spacing: 0.04em;
       }
       .fault-status-badge {
         font-family: var(--font-mono);
-        font-size: 9px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
       }
       .status-inactive {
-        color: var(--text-secondary);
+        color: var(--text-muted);
       }
       .status-active {
-        color: var(--red);
-        animation: fault-blink 1s infinite alternate;
-      }
-      @keyframes fault-blink {
-        from { opacity: 0.6; }
-        to { opacity: 1; }
+        color: var(--critical-text);
+        font-weight: 700;
       }
       .fault-toggle-btn {
         font-family: var(--font-mono);
-        font-size: 9px;
-        font-weight: 700;
-        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 6px;
         border-radius: 2px;
         cursor: pointer;
         outline: none;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.04em;
+        text-align: center;
+        border: 1px solid transparent;
+        background: transparent;
+        transition: all 0.12s ease;
       }
       .btn-inject {
-        background: rgba(0, 229, 255, 0.15);
-        border: 1px solid var(--cyan);
-        color: var(--cyan);
+        color: var(--control-text);
       }
       .btn-inject:hover {
-        background: var(--cyan);
-        color: #000;
+        background: var(--control-bg);
+        border-color: var(--control-border);
       }
       .btn-clear {
-        background: rgba(255, 23, 68, 0.2);
-        border: 1px solid var(--red);
-        color: var(--red);
+        color: var(--critical-text);
+        background: var(--critical-bg);
+        border-color: var(--critical-border);
       }
       .btn-clear:hover {
-        background: var(--red);
-        color: #fff;
+        background: rgba(239, 68, 68, 0.25);
       }
       .clear-all-btn {
-        background: rgba(255, 171, 0, 0.15);
-        border: 1px solid var(--amber);
-        color: var(--amber);
+        background: transparent;
+        border: 1px solid var(--border-primary);
+        color: var(--text-secondary);
         font-family: var(--font-mono);
         font-size: 10px;
-        font-weight: 700;
+        font-weight: 600;
         padding: 2px 8px;
         border-radius: 2px;
         cursor: pointer;
+        transition: all 0.15s ease;
       }
       .clear-all-btn:hover {
-        background: var(--amber);
-        color: #000;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        border-color: var(--text-muted);
       }
     `;
     document.head.appendChild(style);
