@@ -20,6 +20,10 @@ export interface SensorConfig {
   dropoutProb: number;
   /** If non-null, sensor is stuck at this value */
   stuckValue: number | null;
+  /** Minimum clamped value for measurement (e.g. 0 for Euclidean norm/distance) */
+  min?: number;
+  /** Maximum clamped value for measurement */
+  max?: number;
 }
 
 /**
@@ -50,13 +54,18 @@ export class SensorModel {
    */
   read(trueValue: number, dtSec: number, timestampJD: number = 0): SensorReading {
     if (!this.initialized) {
-      this.lastMeasured = trueValue;
+      let initVal = trueValue;
+      if (this.config.min !== undefined) initVal = Math.max(this.config.min, initVal);
+      if (this.config.max !== undefined) initVal = Math.min(this.config.max, initVal);
+      this.lastMeasured = initVal;
       this.initialized = true;
     }
 
     // 1. If stuck, return stuck value with status 'STUCK'
     if (this.stuck || this.config.stuckValue !== null) {
-      const val = this.stuck ? this.stuckValue : (this.config.stuckValue as number);
+      let val = this.stuck ? this.stuckValue : (this.config.stuckValue as number);
+      if (this.config.min !== undefined) val = Math.max(this.config.min, val);
+      if (this.config.max !== undefined) val = Math.min(this.config.max, val);
       this.lastMeasured = val;
       return {
         raw: trueValue,
@@ -68,9 +77,12 @@ export class SensorModel {
 
     // 2. Check dropout probability, if hit return last value with status 'DROPOUT'
     if (this.config.dropoutProb > 0 && this.rng.random() < this.config.dropoutProb) {
+      let val = this.lastMeasured;
+      if (this.config.min !== undefined) val = Math.max(this.config.min, val);
+      if (this.config.max !== undefined) val = Math.min(this.config.max, val);
       return {
         raw: trueValue,
-        measured: this.lastMeasured,
+        measured: val,
         status: 'DROPOUT',
         timestamp: timestampJD,
       };
@@ -89,9 +101,17 @@ export class SensorModel {
       measured = Math.round(measured / this.config.quantization) * this.config.quantization;
     }
 
+    // 6. Physical boundary clamp (e.g., reported distances can never be below 0)
+    if (this.config.min !== undefined) {
+      measured = Math.max(this.config.min, measured);
+    }
+    if (this.config.max !== undefined) {
+      measured = Math.min(this.config.max, measured);
+    }
+
     this.lastMeasured = measured;
 
-    // 6. Return {raw: trueValue, measured, status: 'OK', timestamp}
+    // 7. Return {raw: trueValue, measured, status: 'OK', timestamp}
     return {
       raw: trueValue,
       measured,

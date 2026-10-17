@@ -11,6 +11,7 @@
 
 import { RingBuffer } from '../core/store.js';
 import type { AlertLevel, FidelityLevel, SensorReading } from '../core/types.js';
+import { formatDistance } from '../render/map-utils.js';
 
 export interface TelemetryChannelUIConfig {
   id: string;
@@ -346,7 +347,11 @@ export class TelemetryPanel {
       row.history.push(val);
 
       // 1. Format value text
-      row.valueEl.textContent = `${val.toFixed(cfg.decimals)} ${cfg.unit}`;
+      if (cfg.id.startsWith('nav_dist_')) {
+        row.valueEl.textContent = formatDistance(val);
+      } else {
+        row.valueEl.textContent = `${val.toFixed(cfg.decimals)} ${cfg.unit}`;
+      }
 
       // 2. Alert level styling
       const level = alertMap.get(cfg.id) ?? 'NOMINAL';

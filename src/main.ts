@@ -10,7 +10,7 @@ import { EventBus } from './core/event-bus.js';
 import type { AegisEventMap, WarpPreset, MissionPhase } from './core/types.js';
 import { SimLoop } from './sim/sim-loop.js';
 import { AU_KM, SECONDS_PER_DAY } from './sim/constants.js';
-import { TacticalMap, SkyRenderer, type CameraMode, type LockTarget } from './render/index.js';
+import { TacticalMap, SkyRenderer, formatDistance, type CameraMode, type LockTarget } from './render/index.js';
 import {
   TelemetryPanel,
   FaultPanel,
@@ -824,7 +824,7 @@ function setupConsole(): void {
 
     if (scPosX) scPosX.textContent = `${ship.pos[0] >= 0 ? '+' : ''}${ship.pos[0].toFixed(4)} AU`;
     if (scPosY) scPosY.textContent = `${ship.pos[1] >= 0 ? '+' : ''}${ship.pos[1].toFixed(4)} AU`;
-    if (scDistSun) scDistSun.textContent = `${distSun.toFixed(4)} AU`;
+    if (scDistSun) scDistSun.textContent = formatDistance(distSun);
     if (scVelVec) scVelVec.textContent = `${ship.vel[0].toFixed(4)}, ${ship.vel[1].toFixed(4)} AU/d`;
     if (scSpeed) scSpeed.textContent = `${speedKmS.toFixed(2)} km/s`;
 
@@ -837,8 +837,8 @@ function setupConsole(): void {
 
     if (earthPosVal) earthPosVal.textContent = `${earth.x.toFixed(3)}, ${earth.y.toFixed(3)} AU`;
     if (marsPosVal) marsPosVal.textContent = `${mars.x.toFixed(3)}, ${mars.y.toFixed(3)} AU`;
-    if (distEarthVal) distEarthVal.textContent = `${distEarth.toFixed(3)} AU (${(distEarth * AU_KM).toLocaleString(undefined, { maximumFractionDigits: 0 })} km)`;
-    if (distMarsVal) distMarsVal.textContent = `${distMars.toFixed(4)} AU (${(distMars * AU_KM).toLocaleString(undefined, { maximumFractionDigits: 0 })} km)`;
+    if (distEarthVal) distEarthVal.textContent = formatDistance(distEarth);
+    if (distMarsVal) distMarsVal.textContent = formatDistance(distMars);
     if (marsSoiVal) {
       marsSoiVal.textContent = inMarsSoi ? 'YES (WITHIN SOI)' : 'NO (CRUISE)';
       marsSoiVal.style.color = inMarsSoi ? 'var(--green)' : 'var(--text-secondary)';

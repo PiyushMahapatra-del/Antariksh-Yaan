@@ -48,6 +48,11 @@ This document explicitly defines the boundaries, approximations, and design assu
 * **Rationale**: Spacecraft transit velocities peak at approximately $30\text{--}40\text{ km/s}$ ($\beta = v/c \approx 10^{-4}$). Relativistic corrections introduce negligible variance ($\sim 10^{-8}$) over a 200-day transit.
 * **Impact**: Newtonian mechanics and classical Maxwellian propagation of light in a vacuum ($c = 299,792,458\text{ m/s}$) govern all motions and communications.
 
+### 2.7 Euclidean Distance Non-Negativity & Telemetry Quantization Bounding
+* **Assumption**: Celestial and vehicle relative distances are Euclidean norms ($\|\vec{r}_1 - \vec{r}_2\| \ge 0$). Stochastic sensor noise and quantization models for range channels cannot produce negative distance reports.
+* **Rationale**: Negative physical distance is physically non-realizable. Near-departure coordinates ($\sim 266\text{ km} \approx 1.7 \times 10^{-6}\text{ AU}$) with Gaussian sensor noise ($\sigma = 0.0005\text{ AU}$) would otherwise produce negative samples without physical bounding.
+* **Impact**: Sensor outputs for distance channels are strictly clamped to $\ge 0$, and user-facing formatting follows a unified threshold ($< 0.01\text{ AU}$ displayed in kilometers, otherwise AU with 3 decimals).
+
 ---
 
 ## 3. Communications & Deep Space Networking Assumptions

@@ -332,19 +332,20 @@ export function drawDiamond(
 }
 
 /**
- * Formats a distance in AU into a human-readable sci-fi string.
- * Uses 'X.XXX AU' for values >= 0.01 AU, or scientific / km notation for small values.
+ * Formats a distance in AU into a standardized mission control readout string.
+ * Strictly enforces: kilometers below 0.01 AU, otherwise AU with 3 decimals.
+ * Never formats negative distance (clamped to 0).
  *
  * @param au Distance in Astronomical Units
- * @returns Formatted distance string (e.g. '1.524 AU' or '1.23e6 km')
+ * @returns Formatted distance string (e.g. '266 km' or '1.524 AU')
  */
 export function formatDistance(au: number): string {
-  const absVal = Math.abs(au);
-  if (absVal >= 0.01) {
-    return `${au.toFixed(3)} AU`;
+  const d = Math.max(0, au);
+  if (d < 0.01) {
+    const km = Math.round(d * AU_KM);
+    return `${km.toLocaleString()} km`;
   }
-  const km = au * AU_KM;
-  return `${km.toExponential(2).replace('e+', 'e')} km`;
+  return `${d.toFixed(3)} AU`;
 }
 
 /**

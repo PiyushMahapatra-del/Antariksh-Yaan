@@ -9,6 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { SensorModel } from './sensors.js';
 import { SeededRng } from './rng.js';
+import { SubsystemManager } from './subsystems/index.js';
 
 describe('SensorModel', () => {
   it('returns exact value when noiseless, unquantized, and drift-free', () => {
@@ -166,5 +167,48 @@ describe('SensorModel', () => {
     expect(secondReading.raw).toBe(99.0);
     expect(secondReading.measured).toBe(42.0);
     expect(secondReading.status).toBe('DROPOUT');
+  });
+
+  it('property test: reported distance >= 0 across 10,000 random states on every distance channel', () => {
+    const rng = new SeededRng(99999);
+    const sub = new SubsystemManager(rng);
+    const distanceChannels = ['nav_dist_sun', 'nav_dist_earth', 'nav_dist_mars'];
+
+    for (let i = 0; i < 10000; i++) {
+      const shipX = (rng.random() - 0.5) * 4;
+      const shipY = (rng.random() - 0.5) * 4;
+      const earthX = (rng.random() - 0.5) * 2;
+      const earthY = (rng.random() - 0.5) * 2;
+      const marsX = (rng.random() - 0.5) * 3;
+      const marsY = (rng.random() - 0.5) * 3;
+
+      // In 10% of cases, test extreme near-zero distance (e.g. 0 to 0.00001 AU)
+      const nearZero = rng.random() < 0.1;
+      const distEarth = nearZero ? rng.random() * 0.00001 : Math.hypot(shipX - earthX, shipY - earthY);
+      const distSun = nearZero ? rng.random() * 0.00001 : Math.hypot(shipX, shipY);
+      const distMars = nearZero ? rng.random() * 0.00001 : Math.hypot(shipX - marsX, shipY - marsY);
+
+      sub.updateNavigation({
+        distSun,
+        distEarth,
+        distMars,
+        speedKmS: rng.random() * 40,
+        etaDays: rng.random() * 200,
+      });
+
+      // Step subsystem
+      sub.step(0.1, distSun, 'CRUISE', 2451545.0 + i * 0.01);
+      const telem = sub.getTelemetry();
+
+      for (const ch of distanceChannels) {
+        const reading = telem.get(ch);
+        expect(reading).toBeDefined();
+        if (reading) {
+          expect(reading.measured).toBeGreaterThanOrEqual(0);
+          expect(Number.isNaN(reading.measured)).toBe(false);
+          expect(Number.isFinite(reading.measured)).toBe(true);
+        }
+      }
+    }
   });
 });

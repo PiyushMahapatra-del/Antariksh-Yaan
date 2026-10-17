@@ -89,20 +89,21 @@ export class SubsystemManager {
   }
 
   public updateNavigation(nav: { distSun: number; distEarth: number; distMars: number; speedKmS: number; etaDays: number }): void {
-    this.navState.distSun = nav.distSun;
-    this.navState.distEarth = nav.distEarth;
-    this.navState.distMars = nav.distMars;
-    this.navState.speedKmS = nav.speedKmS;
-    this.navState.etaDays = nav.etaDays;
+    this.navState.distSun = Math.max(0, nav.distSun);
+    this.navState.distEarth = Math.max(0, nav.distEarth);
+    this.navState.distMars = Math.max(0, nav.distMars);
+    this.navState.speedKmS = Math.max(0, nav.speedKmS);
+    this.navState.etaDays = Math.max(0, nav.etaDays);
   }
 
   private registerChannels(): void {
-    const defaultSensor = (noise: number, quant: number = 0): SensorConfig => ({
+    const defaultSensor = (noise: number, quant: number = 0, min?: number): SensorConfig => ({
       noiseSigma: noise,
       quantization: quant,
       biasDrift: 0.00001,
       dropoutProb: 0.001,
       stuckValue: null,
+      min,
     });
 
     const defs: ChannelDefinition[] = [
@@ -114,7 +115,7 @@ export class SubsystemManager {
         unit: 'AU',
         fidelity: 'HIGH',
         getValue: () => this.navState.distSun,
-        sensorConfig: defaultSensor(0.0005, 0.001),
+        sensorConfig: defaultSensor(0.0005, 0.001, 0),
       },
       {
         id: 'nav_dist_earth',
@@ -123,7 +124,7 @@ export class SubsystemManager {
         unit: 'AU',
         fidelity: 'HIGH',
         getValue: () => this.navState.distEarth,
-        sensorConfig: defaultSensor(0.0005, 0.001),
+        sensorConfig: defaultSensor(0.0005, 0.001, 0),
       },
       {
         id: 'nav_dist_mars',
@@ -132,7 +133,7 @@ export class SubsystemManager {
         unit: 'AU',
         fidelity: 'HIGH',
         getValue: () => this.navState.distMars,
-        sensorConfig: defaultSensor(0.0005, 0.001),
+        sensorConfig: defaultSensor(0.0005, 0.001, 0),
       },
       {
         id: 'nav_speed',
@@ -141,7 +142,7 @@ export class SubsystemManager {
         unit: 'km/s',
         fidelity: 'HIGH',
         getValue: () => this.navState.speedKmS,
-        sensorConfig: defaultSensor(0.01, 0.01),
+        sensorConfig: defaultSensor(0.01, 0.01, 0),
       },
       {
         id: 'nav_eta_arrival',

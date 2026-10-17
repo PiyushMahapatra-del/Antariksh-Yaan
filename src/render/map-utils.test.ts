@@ -48,16 +48,17 @@ describe('Map Utilities Coordinate Transforms', () => {
 });
 
 describe('Format Helpers', () => {
-  it('formats standard distances in AU', () => {
-    expect(formatDistance(1.524)).toBe('1.524 AU');
+  it('formats distances strictly adhering to: kilometers below 0.01 AU, otherwise AU with 3 decimals', () => {
+    // Below 0.01 AU -> kilometers with commas
+    expect(formatDistance(0.00386)).toBe('577,448 km');
+    expect(formatDistance(0.00000178)).toBe('266 km');
+    expect(formatDistance(0)).toBe('0 km');
+    // Negative inputs are safely clamped to 0
+    expect(formatDistance(-0.001)).toBe('0 km');
+    // At or above 0.01 AU -> AU with 3 decimals
+    expect(formatDistance(0.01)).toBe('0.010 AU');
     expect(formatDistance(0.015)).toBe('0.015 AU');
-  });
-
-  it('formats small distances in km with scientific notation', () => {
-    const smallDist = 0.00386; // Mars SOI
-    const formatted = formatDistance(smallDist);
-    expect(formatted).toMatch(/km$/);
-    expect(formatted).toContain('e');
+    expect(formatDistance(1.5237)).toBe('1.524 AU');
   });
 
   it('formats light-time under an hour', () => {
